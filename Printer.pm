@@ -1,13 +1,13 @@
 #------------------------------------------------------------------------------#
 # Win32::Printer                                                               #
-# V 0.8.4 (2004-11-04)                                                         #
-# Copyright (C) 2003-2004 Edgars Binans <admin@wasx.net>                       #
+# V 0.9.0 (2005-02-07)                                                         #
+# Copyright (C) 2003-2005 Edgars Binans <admin@wasx.net>                       #
 # http://www.wasx.net                                                          #
 #------------------------------------------------------------------------------#
 
 package Win32::Printer;
 
-use 5.008;
+use 5.006;
 use strict;
 use warnings;
 
@@ -15,9 +15,9 @@ use Carp;
 
 require Exporter;
 
-use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD $_debuglevel $_numcroaked $_IsNT);
+use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD $_debuglevel $_numcroaked );
 
-$VERSION = '0.8.4';
+$VERSION = '0.9.0';
 
 @ISA = qw( Exporter );
 
@@ -45,9 +45,9 @@ $VERSION = '0.8.4';
 	PRINTSETUP NOWARNING DISABLEPRINTTOFILE HIDEPRINTTOFILE NONETWORKBUTTON
 
 	NOUPDATECP TOP LEFT UPDATECP RIGHT VCENTER BOTTOM WORDBREAK BASELINE
-	SINGLELINE EXPANDTABS NOCLIP EXTERNALLEADING CALCRECT NOPREFIX INTERNAL
+	SINGLELINE EXPANDTABS NOCLIP EXTERNALLEADING CALCRECT INTERNAL
 	EDITCONTROL PATH_ELLIPSIS END_ELLIPSIS MODIFYSTRING RTLREADING
-	WORD_ELLIPSIS CENTER JUSTIFY
+	WORD_ELLIPSIS CENTER JUSTIFY UTF8
 
 	PS_SOLID PS_DASH PS_DOT PS_DASHDOT PS_DASHDOTDOT PS_NULL PS_INSIDEFRAME
 	PS_JOIN_ROUND PS_ENDCAP_ROUND PS_ENDCAP_SQUARE PS_ENDCAP_FLAT
@@ -75,6 +75,25 @@ $VERSION = '0.8.4';
 	LOGPIXELSY SIZEPALETTE NUMRESERVED COLORRES PHYSICALWIDTH
 	PHYSICALHEIGHT PHYSICALOFFSETX PHYSICALOFFSETY SCALINGFACTORX
 	SCALINGFACTORY
+
+        PSI_BEGINSTREAM PSI_PSADOBE PSI_PAGESATEND PSI_PAGES PSI_DOCNEEDEDRES
+        PSI_DOCSUPPLIEDRES PSI_PAGEORDER PSI_ORIENTATION PSI_BOUNDINGBOX
+        PSI_PROCESSCOLORS PSI_COMMENTS PSI_BEGINDEFAULTS PSI_ENDDEFAULTS
+        PSI_BEGINPROLOG PSI_ENDPROLOG PSI_BEGINSETUP PSI_ENDSETUP PSI_TRAILER
+        PSI_EOF PSI_ENDSTREAM PSI_PROCESSCOLORSATEND PSI_PAGENUMBER
+        PSI_BEGINPAGESETUP PSI_ENDPAGESETUP PSI_PAGETRAILER PSI_PLATECOLOR
+        PSI_SHOWPAGE PSI_PAGEBBOX PSI_ENDPAGECOMMENTS PSI_VMSAVE PSI_VMRESTORE
+
+	FIF_BMP FIF_ICO FIF_JPEG FIF_JNG FIF_KOALA FIF_LBM FIF_IFF FIF_MNG
+	FIF_PBM FIF_PBMRAW FIF_PCD FIF_PCX FIF_PGM FIF_PGMRAW FIF_PNG FIF_PPM
+	FIF_PPMRAW FIF_RAS FIF_TARGA FIF_TIFF FIF_WBMP FIF_PSD FIF_CUT FIF_XBM
+	FIF_XPM FIF_DDS FIF_GIF
+
+	BMP_DEFAULT BMP_SAVE_RLE JPEG_DEFAULT JPEG_QUALITYSUPERB
+	JPEG_QUALITYGOOD JPEG_QUALITYNORMAL JPEG_QUALITYAVERAGE JPEG_QUALITYBAD
+	PNM_DEFAULT PNM_SAVE_RAW PNM_SAVE_ASCII TIFF_DEFAULT TIFF_CMYK
+	TIFF_PACKBITS TIFF_DEFLATE TIFF_ADOBE_DEFLATE TIFF_NONE TIFF_CCITTFAX3
+	TIFF_CCITTFAX4TIFF_LZW
 
       );
 
@@ -148,6 +167,81 @@ sub EB_CHK			{ 0x01000000; }
 sub EB_TXT			{ 0x02000000; }
 
 sub EB_EMF			{ 0x80000000; }
+
+sub FIF_UNKNOWN			{ -1; }
+sub FIF_BMP			{ 0; }
+sub FIF_ICO			{ 1; }
+sub FIF_JPEG			{ 2; }
+sub FIF_JNG			{ 3; }
+sub FIF_KOALA			{ 4; }
+sub FIF_LBM			{ 5; }
+sub FIF_IFF			{ FIF_LBM; }
+sub FIF_MNG			{ 6; }
+sub FIF_PBM			{ 7; }
+sub FIF_PBMRAW			{ 8; }
+sub FIF_PCD			{ 9; }
+sub FIF_PCX			{ 10; }
+sub FIF_PGM			{ 11; }
+sub FIF_PGMRAW			{ 12; }
+sub FIF_PNG			{ 13; }
+sub FIF_PPM			{ 14; }
+sub FIF_PPMRAW			{ 15; }
+sub FIF_RAS			{ 16; }
+sub FIF_TARGA			{ 17; }
+sub FIF_TIFF			{ 18; }
+sub FIF_WBMP			{ 19; }
+sub FIF_PSD			{ 20; }
+sub FIF_CUT			{ 21; }
+sub FIF_XBM			{ 22; }
+sub FIF_XPM			{ 23; }
+sub FIF_DDS			{ 24; }
+sub FIF_GIF			{ 25; }
+
+sub BMP_DEFAULT			{ 0; }
+sub BMP_SAVE_RLE		{ 1; }
+sub CUT_DEFAULT			{ 0; }
+sub DDS_DEFAULT			{ 0; }
+sub GIF_DEFAULT			{ 0; }
+sub ICO_DEFAULT			{ 0; }
+sub ICO_MAKEALPHA		{ 1; }
+sub IFF_DEFAULT			{ 0; }
+sub JPEG_DEFAULT		{ 0; }
+sub JPEG_FAST			{ 1; }
+sub JPEG_ACCURATE		{ 2; }
+sub JPEG_QUALITYSUPERB		{ 0x80; }
+sub JPEG_QUALITYGOOD		{ 0x100; }
+sub JPEG_QUALITYNORMAL		{ 0x200; }
+sub JPEG_QUALITYAVERAGE		{ 0x400; }
+sub JPEG_QUALITYBAD		{ 0x800; }
+sub KOALA_DEFAULT		{ 0; }
+sub LBM_DEFAULT			{ 0; }
+sub MNG_DEFAULT			{ 0; }
+sub PCD_DEFAULT			{ 0; }
+sub PCD_BASE			{ 1; }
+sub PCD_BASEDIV4		{ 2; }
+sub PCD_BASEDIV16		{ 3; }
+sub PCX_DEFAULT			{ 0; }
+sub PNG_DEFAULT			{ 0; }
+sub PNG_IGNOREGAMMA		{ 1; }
+sub PNM_DEFAULT			{ 0; }
+sub PNM_SAVE_RAW		{ 0; }
+sub PNM_SAVE_ASCII		{ 1; }
+sub PSD_DEFAULT			{ 0; }
+sub RAS_DEFAULT			{ 0; }
+sub TARGA_DEFAULT		{ 0; }
+sub TARGA_LOAD_RGB888		{ 1; }
+sub TIFF_DEFAULT		{ 0; }
+sub TIFF_CMYK			{ 0x0001; }
+sub TIFF_PACKBITS		{ 0x0100; }
+sub TIFF_DEFLATE		{ 0x0200; }
+sub TIFF_ADOBE_DEFLATE		{ 0x0400; }
+sub TIFF_NONE			{ 0x0800; }
+sub TIFF_CCITTFAX3		{ 0x1000; }
+sub TIFF_CCITTFAX4		{ 0x2000; }
+sub TIFF_LZW			{ 0x4000; }
+sub WBMP_DEFAULT		{ 0; }
+sub XBM_DEFAULT			{ 0; }
+sub XPM_DEFAULT			{ 0; }
 
 # Print dialog
 sub ALLPAGES			{ 0x00000000; }
@@ -247,7 +341,6 @@ sub TABSTOP			{ 0x00000080; }
 sub NOCLIP			{ 0x00000100; }
 sub EXTERNALLEADING		{ 0x00000200; }
 sub CALCRECT			{ 0x00000400; }
-sub NOPREFIX			{ 0x00000800; }
 sub INTERNAL			{ 0x00001000; }
 sub EDITCONTROL			{ 0x00002000; }
 sub PATH_ELLIPSIS		{ 0x00004000; }
@@ -257,6 +350,7 @@ sub RTLREADING			{ 0x00020000; }	# Modify 1
 sub WORD_ELLIPSIS		{ 0x00040000; }
 sub CENTER			{ 0x00080000; }	# Modify 2
 
+sub UTF8			{ 0x40000000; }
 sub JUSTIFY			{ 0x80000000; }
 
 # Pen styles
@@ -410,6 +504,41 @@ sub BALTIC			{ 186; }
 sub FW_NORMAL			{ 400; }
 sub FW_BOLD			{ 700; }
 
+# Injection of PostScript
+
+sub PSI_BEGINSTREAM		{ 1; }
+sub PSI_PSADOBE			{ 2; }
+sub PSI_PAGESATEND		{ 3; }
+sub PSI_PAGES			{ 4; }
+sub PSI_DOCNEEDEDRES		{ 5; }
+sub PSI_DOCSUPPLIEDRES		{ 6; }
+sub PSI_PAGEORDER		{ 7; }
+sub PSI_ORIENTATION		{ 8; }
+sub PSI_BOUNDINGBOX		{ 9; }
+sub PSI_PROCESSCOLORS		{ 10; }
+sub PSI_COMMENTS		{ 11; }
+sub PSI_BEGINDEFAULTS		{ 12; }
+sub PSI_ENDDEFAULTS		{ 13; }
+sub PSI_BEGINPROLOG		{ 14; }
+sub PSI_ENDPROLOG		{ 15; }
+sub PSI_BEGINSETUP		{ 16; }
+sub PSI_ENDSETUP		{ 17; }
+sub PSI_TRAILER			{ 18; }
+sub PSI_EOF			{ 19; }
+sub PSI_ENDSTREAM		{ 20; }
+sub PSI_PROCESSCOLORSATEND	{ 21; }
+
+sub PSI_PAGENUMBER		{ 100; }
+sub PSI_BEGINPAGESETUP		{ 101; }
+sub PSI_ENDPAGESETUP		{ 102; }
+sub PSI_PAGETRAILER		{ 103; }
+sub PSI_PLATECOLOR		{ 104; }
+sub PSI_SHOWPAGE		{ 105; }
+sub PSI_PAGEBBOX		{ 106; }
+sub PSI_ENDPAGECOMMENTS		{ 107; }
+sub PSI_VMSAVE			{ 200; }
+sub PSI_VMRESTORE		{ 201; }
+
 #------------------------------------------------------------------------------#
 
 sub new {
@@ -483,6 +612,7 @@ sub _init {
   unless (_num($self->{params}->{'color'}))	{ $self->{params}->{'color'}	 = 2;  }
   unless (_num($self->{params}->{'height'}))	{ $self->{params}->{'height'}	 = 0;  }
   unless (_num($self->{params}->{'width'}))	{ $self->{params}->{'width'}	 = 0;  }
+  unless (defined($self->{params}->{'unit'}))	{ $self->{params}->{'unit'}	 = 1;  }
 
   return undef if $_numcroaked;
 
@@ -528,7 +658,7 @@ sub _init {
     undef $self->{params}->{'prompt'};
   }
 
-  unless($_IsNT = _IsNT()) {
+  unless(_IsNT()) {
     _carp qq^WARNING: Windows 95/98/ME detected!\n^;
     _carp qq^WARNING: All "Space" tranformations will be ignored!\n^;
   }
@@ -540,7 +670,7 @@ sub _init {
   }
   $self->{odc} = $self->{dc};
 
-  unless (defined($self->Unit($self->{params}->{'unit'} || 1))) {
+  unless (defined($self->Unit($self->{params}->{'unit'}))) {
     _croak "ERROR: Cannot set default units!\n";
     return undef;
   }
@@ -651,6 +781,9 @@ sub _xun2p {
 
   my $self = shift;
   my $uval = shift;
+
+  return $uval if $self->{unit} == 0;
+
   my $pval = $uval * $self->{xres} / $self->{unit};
   return $pval;
 
@@ -660,6 +793,9 @@ sub _yun2p {
 
   my $self = shift;
   my $uval = shift;
+
+  return $uval if $self->{unit} == 0;
+
   my $pval = $uval * $self->{yres} / $self->{unit};
   return $pval;
 
@@ -669,6 +805,9 @@ sub _xp2un {
 
   my $self = shift;
   my $pval = shift;
+
+  return $pval if $self->{unit} == 0;
+
   my $uval = ($self->{unit} * $pval) / $self->{xres};
   return $uval;
 
@@ -678,6 +817,9 @@ sub _yp2un {
 
   my $self = shift;
   my $pval = shift;
+
+  return $pval if $self->{unit} == 0;
+
   my $uval = ($self->{unit} * $pval) / $self->{yres};
   return $uval;
 
@@ -687,8 +829,23 @@ sub _pts2p {
 
   my $self = shift;
   my $ptsval = shift;
+
+  return $ptsval if $self->{unit} == 0;
+
   my $pval = ($ptsval * $self->{xres}) / 72;
   return $pval;
+
+}
+
+sub _p2pts {
+
+  my $self = shift;
+  my $pval = shift;
+
+  return $pval if $self->{unit} == 0;
+
+  my $ptsval = (72 * $pval) / $self->{xres};
+  return $ptsval;
 
 }
 
@@ -745,7 +902,7 @@ sub Unit {
 
   my $unit = shift;
 
-  if ($unit) {
+  if (defined($unit)) {
     if ($unit eq "mm") {
       $self->{unit} = 25.409836;
     } elsif ($unit eq "cm") {
@@ -760,8 +917,6 @@ sub Unit {
       _carp "WARNING: Invalid unit \"$unit\"! Units set to \"in\".\n";
       $self->{unit} = 1;
     }
-  } else {
-    return $self->{unit};
   }
 
   return $self->{unit};
@@ -939,11 +1094,6 @@ sub Abort {
     return undef;
   }
 
-  unless ($self->_pdf()) {
-    _croak "ERROR: Cannot create PDF document! ${\_GetLastError()}";
-    return undef;
-  }
-
   if (defined($self->{params}->{'file'})) { return $self->{params}->{'file'}; }
 
   return 1;
@@ -988,7 +1138,7 @@ sub Space {
 
   my $self = shift;
 
-  if ($_IsNT) {
+  if (_IsNT()) {
 
     if ($#_ > 5) { _carp "WARNING: Too many actual parameters!\n"; }
     if ($#_ < 5) {
@@ -1023,20 +1173,45 @@ sub Space {
 
 #------------------------------------------------------------------------------#
 
+sub FontSpace {
+
+  my $self = shift;
+
+  if ($#_ > 0) { _carp "WARNING: Too many actual parameters!\n"; }
+
+  my $space = shift;
+
+  $_numcroaked = 0;
+  $space = 0 unless _num($space);
+  return undef if $_numcroaked;
+
+  my $return = _SetTextCharacterExtra($self->{dc}, $self->_pts2p($space));
+  if ($return == 0x80000000) {
+    _croak "ERROR: Cannot change font spacing! ${\_GetLastError()}";
+    return undef;
+  }
+
+  return $self->_p2pts($return);
+
+}
+
+#------------------------------------------------------------------------------#
+
 sub Font {
 
   my $self = shift;
 
   if ($#_ > 3) { _carp "WARNING: Too many actual parameters!\n"; }
 
-  if (($#_ == 0) and ($_[0] =~ /-*\d+/)) {
+  if (($#_ == 0) and _IsNo($_[0])) {
 
-    unless (_SelectObject($self->{dc}, $_[0])) {
+    my $prefont;
+    unless ($prefont = _SelectObject($self->{dc}, $_[0])) {
       _croak "ERROR: Cannot select font! ${\_GetLastError()}";
       return undef;
     }
 
-    return $_[0];
+    return wantarray ? ($_[0], $prefont) : $_[0];
 
   } else {
 
@@ -1056,7 +1231,7 @@ sub Font {
     $size = 10 unless _num($size);
     $escape = 0 unless _num($escape);
     $orient = 0 unless _num($orient);
-    $charset = DEFAULT unless _num($charset);
+    $charset = 1 unless _num($charset);
     return undef if $_numcroaked;
 
     my $fontid = "$face\_$size\_$escape\_$orient\_$charset";
@@ -1088,7 +1263,8 @@ sub Font {
 
       if ($self->{obj}->{$fontid}) {
 
-        unless (_SelectObject($self->{dc}, $self->{obj}->{$fontid})) {
+        my $prefont;
+        unless ($prefont = _SelectObject($self->{dc}, $self->{obj}->{$fontid})) {
           _croak "ERROR: Cannot select font! ${\_GetLastError()}";
           return undef;
         }
@@ -1098,7 +1274,7 @@ sub Font {
           _carp "WARNING: Cannot select desired font face - \"$realface\" selected!\n";
         }
 
-        return $self->{obj}->{$fontid};
+        return wantarray ? ($self->{obj}->{$fontid}, $prefont) : $self->{obj}->{$fontid};
 
       } else {
         _croak "ERROR: Cannot create font! ${\_GetLastError()}";
@@ -1107,15 +1283,86 @@ sub Font {
 
     } else {	# Fix by Sandor Patocs;
 
-      unless (_SelectObject($self->{dc}, $self->{obj}->{$fontid})) {
+      my $prefont;
+      unless ($prefont = _SelectObject($self->{dc}, $self->{obj}->{$fontid})) {
         _croak "ERROR: Cannot select font! ${\_GetLastError()}";
         return undef;
       }
-      return $self->{obj}->{$fontid};
+      return wantarray ? ($self->{obj}->{$fontid}, $prefont) : $self->{obj}->{$fontid};
 
     }
 
   }
+
+}
+
+#------------------------------------------------------------------------------#
+
+sub FontEnum {
+
+  my $self = shift;
+
+  if ($#_ > 1) { _carp "WARNING: Too many actual parameters!\n"; }
+
+  my ($face, $charset) = @_;
+
+  $face = '' if !defined $face;
+  $charset = 1 unless _num($charset);
+
+  my $return = _FontEnum($self->{dc}, $face, $charset);
+
+  if (wantarray) {
+    my @return;
+    my @lines = split(/\n/, $return);
+    for my $i (0..$#lines) {
+      (
+        $return[$i]{Face},
+        $return[$i]{Charset},
+        $return[$i]{Style},
+        $return[$i]{Type}
+      ) = split(/\t/, $lines[$i]);
+    }
+    return @return;
+  } else {
+    return $return;
+  }
+
+}
+
+#------------------------------------------------------------------------------#
+
+sub Fit {
+
+  my $self = shift;
+
+  if ($#_ > 2) { _carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ < 0) {
+    _croak "ERROR: Not enough actual parameters!\n";
+    return undef;
+  }
+
+  my $string = shift;
+  my $ext = shift;
+  my $vers = shift;
+
+  $_numcroaked = 0;
+  _num($ext);
+  $vers = 0 unless _num($vers);
+  return undef if $_numcroaked;
+
+  if ($vers & 0x40000000) {
+    $vers = 1;
+  }
+
+  $ext = $self->_xun2p($ext);
+  my ($fit, $cx, $cy) = (0, 0, 0);
+
+  unless (_GetTextExtentPoint($vers, $self->{dc}, $string, $ext, $fit, $cx, $cy)) {
+    _croak "ERROR: Cannot get text extent! ${\_GetLastError()}";
+    return undef;
+  }
+
+  return wantarray ? ($fit, $self->_xp2un($cx), $self->_yp2un($cy)) : $fit;
 
 }
 
@@ -1131,9 +1378,15 @@ sub Write {
     return undef;
   }
 
+  if (!defined($_[0]) || ($_[0] eq '')) {
+    return wantarray ? (0, 0, 0, '') : 0;
+  }
+
   if ((($#_ > 1) and ($#_ < 4)) or (($_[3] & 0x80000000) and ($#_ == 4))) {
 
     my ($string, $x, $y, $align) = @_;
+
+    unless (defined($string)) { $string = ''; }
 
     $_numcroaked = 0;
     for ($x, $y, $align) {
@@ -1141,11 +1394,16 @@ sub Write {
     }
     return undef if $_numcroaked;
 
-    unless (defined($string)) { $string = ""; }
     unless ($align) { $align = LEFT; }
 
-    if ($align & 0x00020000) { $align = $align - 0x00020000 + 0x00000100; }
-    if ($align & 0x00080000) { $align = $align - 0x00080000 + 0x00000006; }
+    if ($align & 0x00020000) { $align = $align & ~0x00020000 | 0x00000100; }
+    if ($align & 0x00080000) { $align = $align & ~0x00080000 | 0x00000006; }
+
+    my $vers = 0;
+    if ($align & 0x40000000) {
+      $align &= ~0x40000000;
+      $vers = 1;
+    }
 
     if ($align & 0x80000000) {
       unless(_num($_[4])) {
@@ -1154,47 +1412,55 @@ sub Write {
       }
       my $width = $self->_xun2p($_[4]);
 
-      unless (_SetJustify($self->{dc}, $string, $width)) {
+      unless (_SetJustify($vers, $self->{dc}, $string, $width)) {
         _croak "ERROR: Cannot set text justification! ${\_GetLastError()}";
         return undef;
       }
-
     }
 
-    unless (_TextOut($self->{dc}, $self->_xun2p($x), $self->_yun2p($y), $string, $align)) {
+    my ($retval, $retw, $reth);
+    unless ($retval = _TextOut($vers, $self->{dc}, $self->_xun2p($x), $self->_yun2p($y), $string, $align & ~0x80000000)) {
       _croak "ERROR: Cannot write text! ${\_GetLastError()}";
       return undef;
     }
+    $retw = 0x0000FFFF & $retval;
+    $reth = (0xFFFF0000 & $retval) >> 16;
 
-    unless (_SetJustify($self->{dc}, "", -1)) {
-      _croak "ERROR: Cannot unset text justification! ${\_GetLastError()}";
-      return undef;
+    if ($align & 0x80000000) {
+      unless (_SetJustify($vers, $self->{dc}, "", -1)) {
+        _croak "ERROR: Cannot unset text justification! ${\_GetLastError()}";
+        return undef;
+      }
     }
 
-    return 1;
+    return wantarray ? ($self->_xp2un($retw), $self->_yp2un($reth)) : $self->_yp2un($reth);
 
   } else {
 
     my ($string, $x, $y, $w, $h, $f, $tab) = @_;
 
+    unless (defined($string)) { $string = ''; }
+
     $_numcroaked = 0;
     for ($x, $y, $w, $h, $f, $tab) {
       _num($_);
     }
+    $f = 0 unless _num($f);
+    $tab = 8 unless _num($tab);
     return undef if $_numcroaked;
-
-    if (!defined($string)) { $string = ""; }
 
     my $height;
     my $len = 0;
     my $width = $self->_xun2p($x + $w);
 
-    if (!$f) { $f = 0; }
-    if (!$tab) { $tab = 8; }
+    if ($f & 0x00080000) { $f = $f & ~0x00080000 | 0x00000001; }
 
-    if ($f & 0x00080000) { $f = $f - 0x00080000 + 0x00000001; }
-
-    $height = _DrawText($self->{dc}, $string,
+    my $vers = 0;
+    if ($f & 0x40000000) {
+      $f &= ~0x40000000;
+      $vers = 1;
+    }
+    $height = _DrawText($vers, $self->{dc}, $string,
 			$self->_xun2p($x), $self->_yun2p($y),
 			$width, $self->_yun2p($y + $h),
 			$f, $len, $tab);
@@ -1204,10 +1470,140 @@ sub Write {
       return undef;
     }
 
-    return wantarray ? ($self->_yp2un($width), $self->_yp2un($height), $len, $string) : $self->_yp2un($height);
+    return wantarray ? ($self->_xp2un($width), $self->_yp2un($height), $len, $string) : $self->_yp2un($height);
 
   }
 
+}
+
+#------------------------------------------------------------------------------#
+
+sub Write2 {
+
+  my $self = shift;
+
+  if ($#_ > 8) { _carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ < 3) {
+    _croak "ERROR: Not enough actual parameters!\n";
+    return undef;
+  }
+
+  my $text = shift;
+  my ($x, $y, $w, $flags, $indento, $hspace, $vspace) = @_;
+
+  unless (defined($text)) { $text = ''; }
+
+  $_numcroaked = 0;
+  for ($x, $y, $w) {
+    _num($_);
+  }
+  $flags = 0 unless _num($flags);
+  $indento = 0 unless _num($indento);
+  $hspace = 0 unless _num($hspace);
+  $vspace = 0 unless _num($vspace);
+  return undef if $_numcroaked;
+
+  my @rows = split(/\n/, $text);
+
+  my ($lf, $proctext) = (0, '');
+
+  my ($vers, $len, $wi, $he) = (0, 0, 0, 0);
+  if ($flags & 0x40000000) {
+    $flags &= ~0x40000000;
+    $vers = 1;
+  }
+  unless (_GetTextExtentPoint($vers, $self->{dc}, 'W', 1, $len, $wi, $he)) {
+    _croak "ERROR: Cannot get text extent! ${\_GetLastError()}";
+    return undef;
+  }
+
+  my $return = _SetTextCharacterExtra($self->{dc}, $self->_pts2p($hspace));
+  if ($return == 0x80000000) {
+    _croak "ERROR: Cannot change font spacing! ${\_GetLastError()}";
+    return undef;
+  }
+
+  if ($flags & 0x00080000) {
+    $x += $w / 2;
+    $indento = 0;
+  } elsif ($flags & 0x00000002) {
+    $x += $w;
+    $indento = 0;
+  }
+
+  my $out_wi = 0;
+
+  for my $row (@rows) {
+
+    my $indent = $indento;
+
+    if ($row eq '') {
+      $lf += $he;
+      $proctext .= "\n";
+      next;
+    }
+
+    while (length($row)) {
+
+      unless (_GetTextExtentPoint($vers, $self->{dc}, $row, $self->_xun2p($w - $indent), $len, $wi, $he)) {
+        _croak "ERROR: Cannot get text extent! ${\_GetLastError()}";
+        return undef;
+      }
+
+      if ($out_wi < $wi) {
+        $out_wi = $wi;
+      }
+
+      my $corr = 0;
+
+      my $rowenta = substr($row, 0, $len);
+      if ($len < length($row)) {
+        $rowenta =~ s/\s$//;
+        $rowenta = reverse($rowenta);
+        $rowenta =~ s/^\S+?([\s\-])/defi($1, \$corr)/e;
+        $rowenta = reverse($rowenta);
+        if ($flags & 0x80000000) {
+          unless (_SetJustify($vers, $self->{dc}, $rowenta, $self->_xun2p($w))) {
+            _croak "ERROR: Cannot set text justification! ${\_GetLastError()}";
+            return undef;
+          }
+        }
+      }
+
+      unless (_TextOut($vers, $self->{dc}, $self->_xun2p($x + $indent), $self->_yun2p($y) + $lf, $rowenta, $flags & ~0x80000000)) {
+        _croak "ERROR: Cannot write text! ${\_GetLastError()}";
+        return undef;
+      }
+      $lf += $he + $self->_yun2p($vspace);
+
+      if ($flags & 0x80000000) {
+        unless (_SetJustify($vers, $self->{dc}, "", -1)) {
+          _croak "ERROR: Cannot unset text justification! ${\_GetLastError()}";
+          return undef;
+        }
+        $out_wi = $self->_xun2p($w);
+      }
+
+      $proctext .= $rowenta."\n";
+      $row = substr($row, length($rowenta) + $corr);
+      $indent = 0;
+    }
+  }
+
+  return wantarray ? ($self->_xp2un($out_wi), $self->_yp2un($lf), $proctext) : $self->_yp2un($lf);
+
+  #--------------------
+
+  sub defi {
+    if ($_[0] eq "-") {
+      ${$_[1]} = 0;
+      return "-";
+    } else {
+      ${$_[1]} = 1;
+      return "";
+    }
+  }
+  #--------------------
 }
 
 #------------------------------------------------------------------------------#
@@ -1216,66 +1612,83 @@ sub Pen {
 
   my $self = shift;
 
-  my $penid = "pen";
+  if (($#_ == 0) and _IsNo($_[0])) {
 
-  if ($#_ == -1) {
+    my $handle = shift;
 
-    if (!$self->{obj}->{$penid}) {
-
-      $self->{obj}->{$penid} = _CreatePen(PS_NULL, 0, 0, 0, 0);
-
-      unless ($self->{obj}->{$penid}) {
-        _croak "ERROR: Cannot create pen! ${\_GetLastError()}";
-        return undef;
-      }
-
-    }
-
-  } else {
-
-    if ($#_ > 4) { _carp "WARNING: Too many actual parameters!\n"; }
-    if ($#_ < 3) {
-      _croak "ERROR: Not enough actual parameters!\n";
+    my $prepen = _SelectObject($self->{dc}, $handle);
+    unless ($prepen) {
+      _croak "ERROR: Cannot select pen! ${\_GetLastError()}";
       return undef;
     }
 
-    my ($w, $r, $g, $b, $s) = @_;
+    return $prepen;
 
-    $_numcroaked = 0;
-    for ($w, $r, $g, $b, $s) {
-      _num($_);
-    }
-    return undef if $_numcroaked;
+  } else {
 
-    if (!defined($s)) { $s = PS_SOLID; }
+    my $penid = "pen";
 
-    if (0x00010000 & $s) {
-      $w = $self->_pts2p($w);
+    if ($#_ == -1) {
+
+      if (!$self->{obj}->{$penid}) {
+
+        $self->{obj}->{$penid} = _CreatePen(PS_NULL, 0, 0, 0, 0);
+
+        unless ($self->{obj}->{$penid}) {
+          _croak "ERROR: Cannot create pen! ${\_GetLastError()}";
+          return undef;
+        }
+
+      }
+
     } else {
-      $w = 1;
-    }
 
-    $penid = "$w\_$r\_$g\_$b\_$s";
-
-    if (!$self->{obj}->{$penid}) {
-
-      $self->{obj}->{$penid} = _CreatePen($s, $w, $r, $g, $b);
-
-      unless ($self->{obj}->{$penid}) {
-        _croak "ERROR: Cannot create pen! ${\_GetLastError()}";
+      if ($#_ > 4) { _carp "WARNING: Too many actual parameters!\n"; }
+      if ($#_ < 3) {
+        _croak "ERROR: Not enough actual parameters!\n";
         return undef;
+      }
+
+      my ($w, $r, $g, $b, $s) = @_;
+
+      $_numcroaked = 0;
+      for ($w, $r, $g, $b, $s) {
+        _num($_);
+      }
+      return undef if $_numcroaked;
+
+      if (!defined($s)) { $s = PS_SOLID; }
+
+      if (0x00010000 & $s) {
+        $w = $self->_pts2p($w);
+      } else {
+        $w = 1;
+      }
+
+      $penid = "$w\_$r\_$g\_$b\_$s";
+
+      if (!$self->{obj}->{$penid}) {
+
+        $self->{obj}->{$penid} = _CreatePen($s, $w, $r, $g, $b);
+
+        unless ($self->{obj}->{$penid}) {
+          _croak "ERROR: Cannot create pen! ${\_GetLastError()}";
+          return undef;
+        }
+
       }
 
     }
 
-  }
+    my $prepen = _SelectObject($self->{dc}, $self->{obj}->{$penid});
+    unless ($prepen) {
+      _croak "ERROR: Cannot select pen! ${\_GetLastError()}";
+      return undef;
+    }
 
-  unless (_SelectObject($self->{dc}, $self->{obj}->{$penid})) {
-    _croak "ERROR: Cannot select pen! ${\_GetLastError()}";
-    return undef;
-  }
+    return wantarray ? ($self->{obj}->{$penid}, $prepen) : $self->{obj}->{$penid};
 
-  return 1;
+  }
 
 }
 
@@ -1285,8 +1698,7 @@ sub Color {
 
   my $self = shift;
 
-  if ($#_ > 2) { _carp "WARNING: Too many actual parameters!\n"; }
-  if ($#_ < 2) {
+  if (($#_ != 0) && ($#_ != 2)) {
     _croak "ERROR: Not enough actual parameters!\n";
     return undef;
   }
@@ -1295,16 +1707,21 @@ sub Color {
   for (@_) { _num($_); }
   return undef if $_numcroaked;
 
-  my ($r, $g, $b) = @_;
+  my $thecolor;
+  if ($#_ == 0) {
+    $thecolor = shift;
+  } else {
+    my ($r, $g, $b) = @_;
+    $thecolor = ((($b << 8) | $g) << 8) | $r;
+  }
+  my $coloref = _SetTextColor($self->{dc}, $thecolor);
 
-  my $coloref = _SetTextColor($self->{dc}, $r, $g, $b);
-
-  if (!defined($coloref) or ($coloref =~ /-/)) {
+  if ($coloref =~ /-/) {
     _croak "ERROR: Cannot select color! ${\_GetLastError()}";
     return undef;
   }
 
-  return 1;
+  return $coloref;
 
 }
 
@@ -1318,61 +1735,78 @@ sub Brush {
   for (@_) { _num($_); }
   return undef if $_numcroaked;
 
-  my ($r, $g, $b, $hs) = @_;
+  if (($#_ == 0) and _IsNo($_[0])) {
 
-  my ($bs, $brushid);
+    my $handle = shift;
 
-  $brushid = "brush";
-
-  if (!defined($r)) {
-
-    if (!$self->{obj}->{$brushid}) {
-
-      $self->{obj}->{$brushid} = _CreateBrushIndirect(BS_NULL, 0, 255, 255, 255);
-
-      unless ($self->{obj}->{$brushid}) {
-        _croak "ERROR: Cannot create brush! ${\_GetLastError()}";
-        return undef;
-      }
-
-    }
-
-  } else {
-
-    if ($#_ > 3) { _carp "WARNING: Too many actual parameters!\n"; }
-    if ($#_ < 2) {
-      _croak "ERROR: Not enough actual parameters!\n";
+    my $prebrush = _SelectObject($self->{dc}, $handle);
+    unless ($prebrush) {
+      _croak "ERROR: Cannot select brush! ${\_GetLastError()}";
       return undef;
     }
 
-    if (defined($hs)) {
-      $bs = BS_HATCHED;
+    return $prebrush;
+
+  } else {
+
+    my ($r, $g, $b, $hs) = @_;
+
+    my ($bs, $brushid);
+
+    $brushid = "brush";
+
+    if (!defined($r)) {
+
+      if (!$self->{obj}->{$brushid}) {
+
+        $self->{obj}->{$brushid} = _CreateBrushIndirect(BS_NULL, 0, 255, 255, 255);
+
+        unless ($self->{obj}->{$brushid}) {
+          _croak "ERROR: Cannot create brush! ${\_GetLastError()}";
+          return undef;
+        }
+
+      }
+
     } else {
-      $bs = BS_SOLID;
-      $hs = 0;
-    }
 
-    $brushid = "$r\_$g\_$b\_$hs";
-
-    if (!$self->{obj}->{$brushid}) {
-
-      $self->{obj}->{$brushid} = _CreateBrushIndirect($bs, $hs, $r, $g, $b);
-
-      unless ($self->{obj}->{$brushid}) {
-        _croak "ERROR: Cannot create brush! ${\_GetLastError()}";
+      if ($#_ > 3) { _carp "WARNING: Too many actual parameters!\n"; }
+      if ($#_ < 2) {
+        _croak "ERROR: Not enough actual parameters!\n";
         return undef;
+      }
+
+      if (defined($hs)) {
+        $bs = BS_HATCHED;
+      } else {
+        $bs = BS_SOLID;
+        $hs = 0;
+      }
+
+      $brushid = "$r\_$g\_$b\_$hs";
+
+      if (!$self->{obj}->{$brushid}) {
+
+        $self->{obj}->{$brushid} = _CreateBrushIndirect($bs, $hs, $r, $g, $b);
+
+        unless ($self->{obj}->{$brushid}) {
+          _croak "ERROR: Cannot create brush! ${\_GetLastError()}";
+          return undef;
+        }
+
       }
 
     }
 
-  }
+    my $prebrush = _SelectObject($self->{dc}, $self->{obj}->{$brushid});
+    unless ($prebrush) {
+      _croak "ERROR: Cannot select brush! ${\_GetLastError()}";
+      return undef;
+    }
 
-  unless (_SelectObject($self->{dc}, $self->{obj}->{$brushid})) {
-    _croak "ERROR: Cannot select brush! ${\_GetLastError()}";
-    return undef;
-  }
+    return wantarray ? ($self->{obj}->{$brushid}, $prebrush) : $self->{obj}->{$brushid};
 
-  return 1;
+  }
 
 }
 
@@ -1576,12 +2010,15 @@ sub Move {
 
   my ($x, $y) = @_;
 
-  unless (_MoveTo($self->{dc}, $self->_xun2p($x), $self->_yun2p($y))) {
+  $x = $self->_xun2p($x);
+  $y = $self->_yun2p($y);
+
+  unless (_MoveTo($self->{dc}, $x, $y)) {
     _croak "ERROR: Cannot Move! ${\_GetLastError()}";
     return undef;
   }
 
-  return 1;
+  return ($self->_xp2un($x), $self->_yp2un($y));
 
 }
 
@@ -1972,7 +2409,7 @@ sub Image {
   my $self = shift;
 
   if (($#_ != 0) and ($#_ != 2) and ($#_ != 4)) {
-    _croak "ERROR: Wrong number parameters!\n";
+    _croak "ERROR: Wrong number of parameters!\n";
     return undef;
   }
 
@@ -1982,12 +2419,12 @@ sub Image {
 
     my ($fileorref, $x, $y, $w, $h) = @_;
 
-    if ($fileorref !~ /^-*\d+$/) {
+    if (!_IsNo($fileorref)) {
       $fileorref = $self->Image($fileorref);
       unless (defined($fileorref)) { return undef; }
     }
 
-    _GetEnhSize($self->{dc}, $fileorref, $width, $height);
+    _GetEnhSize($self->{dc}, $fileorref, $width, $height, $self->{unit});
     $width = $self->_xp2un($width);
     $height = $self->_yp2un($height);
 
@@ -2005,15 +2442,15 @@ sub Image {
 
     my $file = shift;
 
-    if ($file =~ /^-*\d+$/) {
-      _GetEnhSize($self->{dc}, $file, $width, $height);
+    if (_IsNo($file)) {
+      _GetEnhSize($self->{dc}, $file, $width, $height, $self->{unit});
       $width = $self->_xp2un($width);
       $height = $self->_yp2un($height);
       return ($width, $height);
     }
 
     if (defined($self->{imagef}->{$file})) {
-      _GetEnhSize($self->{dc}, $self->{imagef}->{$file}, $width, $height);
+      _GetEnhSize($self->{dc}, $self->{imagef}->{$file}, $width, $height, $self->{unit});
       $width = $self->_xp2un($width);
       $height = $self->_yp2un($height);
       return wantarray ? ($self->{imagef}->{$file}, $width, $height) : $self->{imagef}->{$file};
@@ -2035,7 +2472,7 @@ sub Image {
       }
     } else {
 
-      $fref = _LoadBitmap($self->{dc}, $file, -1);
+      $fref = _LoadBitmap($self->{dc}, $file, -1, $self->{unit});
 
       unless ($fref) {
         _croak "ERROR: Cannot load bitmap! ${\_GetLastError()}";
@@ -2047,7 +2484,7 @@ sub Image {
     $self->{imager}->{$fref} = $file;
     $self->{imagef}->{$file} = $fref;
 
-    _GetEnhSize($self->{dc}, $fref, $width, $height);
+    _GetEnhSize($self->{dc}, $fref, $width, $height, $self->{unit});
     $width = $self->_xp2un($width);
     $height = $self->_yp2un($height);
     return wantarray ? ($fref, $width, $height) : $fref;
@@ -2145,20 +2582,20 @@ sub Meta {
     return undef;
   }
 
-  unless (defined($self->Pen(1, 0, 0, 0))) {
-    _croak "ERROR: Cannot create default pen!\n";
-    return undef;
-  }
-  unless (defined($self->Color(0, 0, 0))) {
+  if (_CopyTextColor($self->{odc}, $self->{dc}) =~ /-/) {
     _croak "ERROR: Cannot set default color!\n";
     return undef;
   }
-  unless (defined($self->Brush(128, 128, 128))) {
-    _croak "ERROR: Cannot create default brush!\n";
+  unless (_CopyObject($self->{odc}, $self->{dc}, 1)) {
+    _croak "ERROR: Cannot select pen!\n";
     return undef;
   }
-  unless (defined($self->Font())) {
-    _croak "ERROR: Cannot create default font!\n";
+  unless (_CopyObject($self->{odc}, $self->{dc}, 2)) {
+    _croak "ERROR: Cannot select brush!\n";
+    return undef;
+  }
+  unless (_CopyObject($self->{odc}, $self->{dc}, 6)) {
+    _croak "ERROR: Cannot select font!\n";
     return undef;
   }
 
@@ -2184,7 +2621,14 @@ sub MetaEnd {
     $self->{emfstate} = 0;
     $self->{dc} = $self->{odc};
     $self->{imager}->{$return} = 0;
-    return $return;
+
+    my ($width, $height) = (0, 0);
+    _GetEnhSize($self->{dc}, $return, $width, $height, $self->{unit});
+    $width = $self->_xp2un($width);
+    $height = $self->_yp2un($height);
+
+    return wantarray ? ($return, $width, $height) : $return;
+
   } else {
     _croak "ERROR: Cannot end EMF! ${\_GetLastError()}";
     return undef;
@@ -2225,7 +2669,7 @@ sub Close {
   if ($#_ > 0) { _carp "WARNING: Too many actual parameters!\n"; }
 
   if ($#_ == 0) {
-    if ($_[0] =~ /^-*\d+$/) {
+    if (_IsNo($_[0])) {
       if (_DeleteEnhMetaFile($_[0])) {
         delete $self->{imagef}->{$self->{imager}->{$_[0]}};
         delete $self->{imager}->{$_[0]};
@@ -2265,6 +2709,100 @@ sub Close {
   }
 
   return 1;
+
+}
+
+#------------------------------------------------------------------------------#
+
+sub Inject {
+
+  my $self = shift;
+
+  if ($#_ != 2) {
+    _croak "ERROR: Wrong number of parameters!\n";
+    return undef;
+  }
+
+  my ($point, $page, $data) = @_;
+
+  $_numcroaked = 0;
+  _num($point);
+  _num($page);
+  return undef if $_numcroaked;
+
+  _Inject($self->{dc}, $point, $page, $data);
+
+  return 1;
+
+}
+
+#------------------------------------------------------------------------------#
+
+sub ImageSave {
+
+  my $self = shift;
+
+  if ($#_ < 1) {
+    _croak "ERROR: Not enough actual parameters!\n";
+    return undef;
+  }
+  if ($#_ > 6) {
+    _carp "WARNING: Too many actual parameters!\n";
+    return undef;
+  }
+
+  my ($handle, $fname, $bpp, $width, $height, $format, $flag) = @_;
+
+  $_numcroaked = 0;
+  _num($handle);
+  _num($format);
+  $bpp = 24 unless _num($bpp);
+  $flag= 0 unless _num($flag);
+  $format= -1 unless _num($format);
+
+  if (!_num($width) || !_num($height) || ($width <= 0) || ($height <= 0)) {
+    $width = 0;
+    $height = 0;
+    _GetEnhSize($self->{dc}, $handle, $width, $height, $self->{unit});
+  }
+
+  return undef if $_numcroaked;
+
+  my $prompt;
+  if ($fname =~ s/^FILE://i) { $prompt = 1; }
+
+  $fname =~ s/\//\\/g;
+  while (-f $fname) { 
+    if ($fname !~ s/(.*\\*)(.*)\((\d+)\)(.*)\./my $i = $3; $i++; "$1$2($i)."/e) {
+      $fname =~ s/(.*\\*)(.*)\./$1$2(1)\./
+    }
+  }
+  my $file = $fname;
+  $file =~ s/(.*\\)//g;
+  my $dir = $1;
+  unless ($dir) { $dir = '.\\'; }
+  if ($prompt) {
+    $fname = _SaveAs(4, $file, $dir);
+  }
+  if (($file =~ /[\"\*\/\:\<\>\?\\\|]|[\x00-\x1f]/) or (!(-d $dir))) {
+    _croak "ERROR: Cannot create printer object! Invalid filename\n";
+    return undef;
+  }
+
+  my $rerr = _EmfH2BMP($self->{dc}, $handle, $fname, $width, $height, $format, $flag, $bpp);
+  if ($rerr == 1) {
+    return $fname;
+  } elsif ($rerr ==  0) {
+    _croak "ERROR: Cannot save image! ${\_GetLastError()}";
+  } elsif ($rerr == -1) {
+    _croak "ERROR: Cannot save image! (Unable to guess filetype)\n";
+  } elsif ($rerr == -2) {
+    _croak "ERROR: Cannot save image! (Bits not supported)\n";
+  } elsif ($rerr == -3) {
+    _croak "ERROR: Cannot save image! (Image format not supported)\n";
+  }
+
+  return undef;
 
 }
 
@@ -2442,8 +2980,8 @@ filename suggestion and/or PDF document title;
 
 =head3 dialog
 
-If both B<L</printer>> and B<dialog> attributes omitted- systems B<default printer>
-is used.
+If both B<L</printer>> and B<dialog> attributes omitted- systems B<default 
+printer> is used.
 
 Printer dialog settings. You may use the combination of the following flags
 (B<$dc-E<gt>{flags}> contains modified printer dialog flags):
@@ -2690,6 +3228,8 @@ Or unit ratio according to:
 
   Example: 2.5409836 cm = 1 in
 
+B<Set units to 0 to use device units.>
+
 See also L</Unit>.
 
 =head3 width
@@ -2762,7 +3302,10 @@ See also L</Bezier> and L</Move>.
 
 =head2 Brush
 
-  $dc->Brush([$r, $g, $b, [$hatch]]);
+  $handle = $dc->Brush([$r, $g, $b, [$hatch]]);
+  ($handle, $previous_handle) = $dc->Brush([$r, $g, $b, [$hatch]]);
+  $previous_handle = $dc->Brush($handle);
+
 
 The B<Brush> method creates a logical brush that has the specified style
 and optional hatch style.
@@ -3050,7 +3593,8 @@ See also L</new>, L</Image>, L</MetaEnd>, L</EBbl> and L</file>.
 
 =head2 Color
 
-  $dc->Color($b, $g, $b);
+  $previous_coloref = $dc->Color($b, $g, $b);
+  $previous_coloref = $dc->Color($coloref);
 
 The B<Color> method sets the text to the specified color.
 
@@ -3060,7 +3604,8 @@ See also L</Write>, L</Font> and L</EBbl>.
 
   $dc->Debug([$debuglevel]);
 
-The B<Debug> method changes debug level from now on or gets current level. Possible values:
+The B<Debug> method changes debug level from now on or gets current level.
+Possible values:
 
   0 - default;
   1 - die on warnings;
@@ -3162,10 +3707,22 @@ Selects winding mode (fills any region with a nonzero winding value).
 
 See also L</PDraw> and L</Poly>.
 
+=head2 Fit
+
+  $char_num = $dc->Fit($text, $maxwidth, [UTF8]);
+  ($char_num, $width, $height) = $dc->Fit($text, $maxwidth, [UTF8]);
+
+The B<Fit> method retrieves the number of characters (B<$char_num>) in a
+specified string (B<$text>) that will fit within a specified space
+(B<$maxwidth>) and in array context also returns B<$width, $height> of string.
+Use B<UTF8> for UTF-8 encoded strings;
+
+See also L</Write> and L</Write2>.
+
 =head2 Font
 
   $font_handle = $dc->Font([$face, [$size, [$angle, [$charset]]]]);
-  $font_handle = $dc->Font([$face, [$size, [\[$escapement, [orientation]\], [$charset]]]]);
+  ($font_handle, $previous_font) = $dc->Font([$face, [$size, [\[$escapement, [orientation]\], [$charset]]]]);
 
 B<or>
 
@@ -3173,30 +3730,36 @@ B<or>
 
 The B<Font> method creates and selects a logical font that has specific
 characteristics and returns handle to it B<or> selects given font by it's
-handle. Fontsize is set in pts.
+handle. Fontsize is set in pts. In array context also returns previously selecte
+font handle.
 
-B<IMPORTANT!!!> First font (e.g. "Arial") that matches desired attributes is selected if desired
-font is not found. Reason of that may be raster font, wrong font name, character set unsupported by font etc.
-B<Warning is issued!>
+B<For UTF-8 support see L</Write>.>
 
-If B<$angle> is array reference then function looks for B<($escapement, [orientation])>
+B<IMPORTANT!!!> First font (e.g. "Arial") that matches desired attributes is
+selected if desired font is not found. Reason of that may be raster font, wrong
+font name, character set unsupported by font etc. B<Warning is issued!>
+
+If B<$angle> is array reference then function looks for B<($escapement,
+[orientation])>
 
 Example:
 
   $fh = $dc->Font("Arial", 10, [-90, 0]); # Same as:
   $fh = $dc->Font("Arial", 10, [-90]);    # ...prints characters cascaded vertically
 
-B<$escapement> - Specifies the angle in degrees, between the escapement vector and the x-axis of the device.
-The escapement vector is parallel to the base line of a row of text.
+B<$escapement> - Specifies the angle in degrees, between the escapement vector
+and the x-axis of the device. The escapement vector is parallel to the base
+line of a row of text.
 
-B<Windows NT/2k/XP/...>: You can specify the escapement angle of the string independently of the orientation
-angle of the string's characters.
+B<Windows NT/2k/XP/...>: You can specify the escapement angle of the string
+independently of the orientation angle of the string's characters.
 
-B<Windows 95/98/Me>: The B<$escapement> member specifies both the escapement and orientation. You should set
-B<$escapement> and B<$orientation> to the same value.
+B<Windows 95/98/Me>: The B<$escapement> member specifies both the escapement and
+orientation. You should set B<$escapement> and B<$orientation> to the same
+value.
 
-B<$orientation> - Specifies the angle, in degrees, between each character's base line and the x-axis of the
-device.
+B<$orientation> - Specifies the angle, in degrees, between each character's base
+line and the x-axis of the device.
 
 Defaults to:
 
@@ -3230,7 +3793,37 @@ Defined character set constants:
   EASTEUROPE			= 238
   OEM				= 255
 
-See also L</Write>, L</Color> and L</EBbl>.
+See also L</FontEnum>, L</Write>, L</Color> and L</EBbl>.
+
+=head2 FontEnum
+
+  $font_table = $dc->FontEnum([$face, [$charset]]);
+  @font_array = $dc->FontEnum([$face, [$charset]]);
+
+The B<FontEnum> method enumerates all fonts in the system available for printer
+that match the font characteristics specified. It returns tab-delimited table of
+values in scalar context or array of hashes in array context. B<$font> - font
+face of interest, B<$charset> - character set of interest.
+
+Follown hash keys available:
+
+  {Face}	- enumerated font face
+  {Charset}	- enumerated character set (character set codes - see Font method)
+  {Style}	- enumerated font style ('bold' and/or 'italic')
+  {Type}	- type of enumerated font face (Raster = 1, Device = 2, TrueType = 4);
+
+See also L</Font>.
+
+=head2 FontSpace
+
+  $old_space = $dc->FontSpace($space);
+
+The B<FontSpace> function sets the intercharacter spacing (B<$space>) and
+returns previous value. B<$space> is in pts. Intercharacter spacing is added to
+each character, including break characters, when the system writes a line of
+text.
+
+See also L</Font> and L</Write2>.
 
 =head2 Image
 
@@ -3255,15 +3848,16 @@ path- image is cached in to memory and it may be referenced by it's path.
 
 In second case if signed integer is given- method assumes it's a handle!
 
-In array context also returns original image width an d height B<$original_width, $original_height>.
+In array context also returns original image width an d height
+B<$original_width, $original_height>.
 
 Natively it supports B<EMF> and B<WMF> format files.
-B<BMP, CUT, DDS, ICO, JPEG, JNG, KOALA, LBM, IFF, MNG, PBM, PBMRAW, PCD, PCX, PGM,
-PGMRAW, PNG, PPM, PPMRAW, PSD, RAS, TARGA, TIFF, WBMP, XBM, XPM> bitmap formats are
-handled via L<FreeImage library|/INSTALLATION>.
+B<BMP, CUT, DDS, ICO, JPEG, JNG, KOALA, LBM, IFF, MNG, PBM, PBMRAW, PCD, PCX,
+PGM, PGMRAW, PNG, PPM, PPMRAW, PSD, RAS, TARGA, TIFF, WBMP, XBM, XPM> bitmap
+formats are handled via L<FreeImage library|/INSTALLATION>.
 
-Image file formats are recognized by their extensions. On failure- method tries to
-recognize it by file content (bitmaps only).
+Image file formats are recognized by their extensions. On failure- method tries
+to recognize it by file content (bitmaps only).
 
 B<WARNING!> Metafiles may have objects outside the bounding box specified by
 metafile header. These objects will be visible unless you specify clipping
@@ -3273,6 +3867,383 @@ After usage, you should use B<L</Close>> to unload image from memory and destroy
 a handle.
 
 See also L</Close>, L</MetaEnd> and L</EBbl>.
+
+=head2 ImageSave
+
+  $dc->ImageSave($handle, $filename, [$bpp, [$width, $height, [$format, [$flag]]]]);
+
+The B<ImageSave> method saves image as bitmap by its B<$handle> aquired by
+B<L</Image>>, B<L</MetaEnd>> or B<L</EBbl>> methods. B<$filename> represents the
+file name and path string. B<$bpp> for setting target bit depth (currently only
+24-bit & 8-bit images supported). B<$width, $height> target width of the image.
+
+B<$format> is one of the following B<(Note, that not all formats are writable yet)>:
+
+  FIF_BMP			= 0
+
+Windows or OS/2 Bitmap File (*.BMP)
+
+  FIF_ICO			= 1
+
+Windows Icon (*.ICO)
+
+  FIF_JPEG			= 2
+
+Independent JPEG Group (*.JPG, *.JIF, *.JPEG, *.JPE)
+
+  FIF_JNG			= 3
+
+JPEG Network Graphics (*.JNG)
+
+  FIF_KOALA			= 4
+
+Commodore 64 Koala format (*.KOA)
+
+  FIF_IFF			= 5
+
+Amiga IFF (*.IFF, *.LBM)
+
+  FIF_MNG			= 6
+
+Multiple Network Graphics (*.MNG)
+
+  FIF_PBM			= 7
+
+Portable Bitmap (ASCII) (*.PBM)
+
+  FIF_PBMRAW			= 8
+
+Portable Bitmap (BINARY) (*.PBM)
+
+  FIF_PCD			= 9
+
+Kodak PhotoCD (*.PCD)
+
+  FIF_PCX			= 10
+
+Zsoft Paintbrush PCX bitmap format (*.PCX)
+
+  FIF_PGM			= 11
+
+Portable Graymap (ASCII) (*.PGM)
+
+  FIF_PGMRAW			= 12
+
+Portable Graymap (BINARY) (*.PGM)
+
+  FIF_PNG			= 13
+
+Portable Network Graphics (*.PNG)
+
+  FIF_PPM			= 14
+
+Portable Pixelmap (ASCII) (*.PPM)
+
+  FIF_PPMRAW			= 15
+
+Portable Pixelmap (BINARY) (*.PPM)
+
+  FIF_RAS			= 16
+
+Sun Rasterfile (*.RAS)
+
+  FIF_TARGA			= 17
+
+Truevision Targa files (*.TGA, *.TARGA)
+
+  FIF_TIFF			= 18
+
+Tagged Image File Format (*.TIF, *.TIFF)
+
+  FIF_WBMP			= 19
+
+Wireless Bitmap (*.WBMP)
+
+  FIF_PSD			= 20
+
+Adobe Photoshop (*.PSD)
+
+  FIF_CUT			= 21
+
+Dr. Halo (*.CUT)
+
+  FIF_XBM			= 22
+
+X11 Bitmap Format (*.XBM)
+
+  FIF_XPM			= 23
+
+X11 Pixmap Format (*.XPM)
+
+  FIF_DDS			= 24
+
+DirectDraw Surface (*.DDS)
+
+  FIF_GIF			= 25
+
+Graphics Interchange Format (*.GIF)
+
+B<$flag> is one of the following:
+
+B<BMP:>
+
+  BMP_DEFAULT			= 0
+
+Save without any compression
+
+  BMP_SAVE_RLE			= 1
+
+Compress the bitmap using RLE when saving
+
+B<JPEG:>
+
+  JPEG_DEFAULT			= 0
+
+Saves with good quality (75:1)
+
+  JPEG_QUALITYSUPERB		= 0x80
+
+Saves with superb quality (100:1)
+
+  JPEG_QUALITYGOOD		= 0x100
+
+Saves with good quality (75:1)
+
+  JPEG_QUALITYNORMAL		= 0x200
+
+Saves with normal quality (50:1)
+
+  JPEG_QUALITYAVERAGE		= 0x400
+
+Saves with average quality (25:1)
+
+  JPEG_QUALITYBAD		= 0x800
+
+Saves with bad quality (10:1)
+
+  Integer x in [0..100]
+
+Save with quality x:100
+
+B<PBM, PGM, PPM:>
+
+  PNM_DEFAULT			= 0
+
+Saves the bitmap as a binary file
+
+  PNM_SAVE_RAW			= 0
+
+Saves the bitmap as a binary file
+
+  PNM_SAVE_ASCII		= 1
+
+Saves the bitmap as an ASCII file
+
+B<TIFF:>
+
+  TIFF_DEFAULT			= 0
+
+Save using CCITTFAX4 compression for 1-bit bitmaps and LZW compression for any other bitmaps
+
+  TIFF_CMYK			= 0x0001
+
+Stores tags for separated CMYK (use | to combine with TIFF compression flags)
+
+  TIFF_PACKBITS			= 0x0100
+
+Save using PACKBITS compression.
+
+  TIFF_DEFLATE			= 0x0200
+
+Save using DEFLATE compression (also known as ZLIB compression)
+
+  TIFF_ADOBE_DEFLATE		= 0x0400
+
+Save using ADOBE DEFLATE compression
+
+  TIFF_NONE			= 0x0800
+
+Save without any compression
+
+  TIFF_CCITTFAX3		= 0x1000
+
+Save using CCITT Group 3 fax encoding
+
+  TIFF_CCITTFAX4		= 0x2000
+
+Save using CCITT Group 4 fax encoding
+
+  TIFF_LZW			= 0x4000
+
+Save using LZW compression
+
+See also L</Image>, L</MetaEnd> and L</EBbl>.
+
+=head2 Inject
+
+  $dc->Inject($point, $page, $data);
+
+The B<Inject> method adds B<$data> to a specific B<$point> in specified B<$page>.
+
+Where B<$point> specifies where to inject the raw data in the PostScript output.
+This member can be one of the following values. B<$page> specifies the page
+number (starting from 1) to which the injection data is applied. Specify zero to
+apply the injection data to all pages. This member is meaningful only for page
+level injection points starting from PSI_PAGENUMBER. For other injection points,
+set PageNumber to zero.
+
+The injection data for a specified injection point is cumulative. In other
+words, B<Inject> method adds the new injection data to any injection data
+previously specified for the same injection point.
+
+If the job is in EMF data type, you must provide all injection data before
+B<Start>.
+
+If the job is in RAW data type, you must provide the following injection data
+before the driver needs it:
+
+1) Data for header sections (before first %%Page:) before calling the first
+B<Page> method.
+
+2) Data for page setup sections (when injecting data for one particular page)
+before calling the B<Page> method for that particular page.
+
+3) Data for page setup sections (when injecting data for all pages starting from
+a certain page) before calling B<Page> for the starting page.
+
+4) Data for page trailer sections before calling the next B<Page> method.
+
+5) Data for document trailer sections before calling the B<Close> method.
+
+B<The injection points are:>
+
+  PSI_BEGINSTREAM		= 1
+
+Before the first byte of job stream.
+
+  PSI_PSADOBE			= 2
+
+Before %!PS-Adobe.
+
+  PSI_PAGESATEND		= 3
+
+Replaces driver's B<%%Pages (atend)>.
+
+  PSI_PAGES			= 4
+
+Replaces driver's B<%%Pages nnn>.
+
+  PSI_DOCNEEDEDRES		= 5
+
+After B<%%DocumentNeededResources>.
+
+  PSI_DOCSUPPLIEDRES		= 6
+
+After B<%%DocumentSuppliedResources>.
+
+  PSI_PAGEORDER			= 7
+
+Replaces driver's B<%%PageOrder>.
+
+  PSI_ORIENTATION		= 8
+
+Replaces driver's B<%%Orientation>.
+
+  PSI_BOUNDINGBOX		= 9
+
+Replaces driver's B<%%BoundingBox>.
+
+  PSI_PROCESSCOLORS		= 10
+
+Replaces driver's B<%DocumentProcessColors <color>>.
+
+  PSI_COMMENTS			= 11
+
+Before B<%%EndComments>.
+
+  PSI_BEGINDEFAULTS		= 12
+
+After B<%%BeginDefaults>.
+
+  PSI_ENDDEFAULTS		= 13
+
+Before B<%%EndDefaults>.
+
+  PSI_BEGINPROLOG		= 14
+
+After B<%%BeginProlog>.
+
+  PSI_ENDPROLOG			= 15
+
+Before B<%%EndProlog>.
+
+  PSI_BEGINSETUP		= 16
+
+After B<%%BeginSetup>.
+
+  PSI_ENDSETUP			= 17
+
+Before B<%%EndSetup>.
+
+  PSI_TRAILER			= 18
+
+After B<%%Trailer>.
+
+  PSI_EOF			= 19
+
+After B<%%EOF>.
+
+  PSI_ENDSTREAM			= 20
+
+After the last byte of job stream.
+
+  PSI_PROCESSCOLORSATEND	= 21
+
+Replaces driver's B<%%DocumentProcessColors (atend)>.
+
+B<Page level injection points>
+
+  PSI_PAGENUMBER		= 100
+
+Replaces driver's B<%%Page>.
+
+  PSI_BEGINPAGESETUP		= 101
+
+After B<%%BeginPageSetup>.
+
+  PSI_ENDPAGESETUP		= 102
+
+Before B<%%EndPageSetup>.
+
+  PSI_PAGETRAILER		= 103
+
+After B<%%PageTrailer>.
+
+  PSI_PLATECOLOR		= 104
+
+Replace driver's B<%%PlateColor: <color>>.
+
+  PSI_SHOWPAGE			= 105
+
+Before showpage operator.
+
+  PSI_PAGEBBOX			= 106
+
+Replaces driver's B<%%PageBoundingBox>.
+
+  PSI_ENDPAGECOMMENTS		= 107
+
+Before B<%%EndPageComments>.
+
+  PSI_VMSAVE			= 200
+
+Before save operator.
+
+  PSI_VMRESTORE			= 201
+
+After restore operator.
+
+See also L</Start>, L</Page> and L</Close>.
 
 =head2 Line
 
@@ -3319,16 +4290,17 @@ See also L</MetaEnd>.
 =head2 MetaEnd
 
   $image_handle = $dc->MetaEnd();
+  ($image_handle, $width, $height) = $dc->MetaEnd();
 
 The B<MetaEnd> method closes an EMF bracket and returns handle to a creted EMF
-image. After usage, you should use B<L</Close>> to unload image from memory and
-destroy a handle.
+image and also B<$width, $height> in array context. After usage, you should use
+B<L</Close>> to unload image from memory and destroy a handle.
 
 See also L</Meta>, L</Image> and L</Close>.
 
 =head2 Move
 
-  $dc->Move($x, $y);
+  ($old_x, $old_y) = $dc->Move($x, $y);
 
 The B<Move> method updates the current position to the specified point.
 
@@ -3441,7 +4413,9 @@ See also L</PBegin>, L</PClip>, L</PDraw> and L</PAbort>.
 
 =head2 Pen
 
-  $dc->Pen([$width, $r, $g, $b, [$style]]);
+  $handle = $dc->Pen([$width, $r, $g, $b, [$style]]);
+  ($handle, $previous_handle) = $dc->Pen([$width, $r, $g, $b, [$style]]);
+  $previous_handle = $dc->Pen($handle);
 
 The B<Pen> method creates a logical pen that has the specified style,
 width, and color. The pen can subsequently be used to draw lines and curves.
@@ -3609,15 +4583,19 @@ Or unit ratio according to:
 
   Example: 2.5409836 cm = 1 in
 
+B<Set units to 0 to use device units.>
+
 See also L</unit*>.
 
 =head2 Write
 
   # String mode (SM):
-  $dc->Write($text, $x, $y, [$format, [$just_width]]);
+  $height = $dc->Write($text, $x, $y, [$format, [$just_width]]);
+  ($width, $height) = $dc->Write($text, $x, $y, [$format, [$just_width]]);
 
   # Draw mode (DM):
-  $dc->Write($text, $x, $y, $width, $height, [$format, [$tab_stop]]);
+  $height = $dc->Write($text, $x, $y, $width, $height, [$format, [$tab_stop]]);
+  ($width, $height, $length, $text) = $dc->Write($text, $x, $y, $width, $height, [$format, [$tab_stop]]);
 
 B<SM:>
 The B<Write> method B<string mode> writes a character string at the specified
@@ -3631,7 +4609,15 @@ number of characters processed by B<Write>, including white-space characters.
 See CALCRECT and MODIFYSTRING flags. Optional B<$tab_stop> parameter
 specifies the number of average character widths per tab stop.
 
+B<Warning!> - $widt must be less than 0x80000000 units.
+
 Optional text format flags:
+
+  UTF8				= 0x20000000 (SM & DM)
+
+Treat B<$text> as B<UTF-8> encoded string. Note that selected font must support
+desired unicode characters. Available for NT platforms and also supported by
+Microsoft Layer for Unicode.
 
   NOUPDATECP			= 0x00000000 (SM)
 
@@ -3640,9 +4626,9 @@ point is passed to the text output method.
 
   TOP				= 0x00000000 (SM & DM)
 
-B<SL:> The reference point will be on the top edge of the bounding rectangle.
+B<SM:> The reference point will be on the top edge of the bounding rectangle.
 
-B<ML:> Top justifies text. This value must be combined with SINGLELINE.
+B<DM:> Top justifies text. This value must be combined with SINGLELINE.
 
   LEFT				= 0x00000000 (SM & DM)
 
@@ -3709,14 +4695,6 @@ of text, B<Write> modifies the width of the rectangle so that it bounds the
 last character in the line. In either case, B<Write> returns the height of the
 formatted text, but does not draw the text.
 
-  NOPREFIX			= 0x00000800 (DM)
-
-Turns off processing of prefix characters. Normally, B<Write> interprets the
-ampersand (&) mnemonic-prefix character as a directive to underscore the
-character that follows, and the double ampersand (&&) mnemonic-prefix characters
-as a directive to print a single ampersand. By specifying NOPREFIX, this
-processing is turned off.
-
   INTERNAL			= 0x00001000 (DM)
 
 Uses the system font to calculate text metrics.
@@ -3743,8 +4721,8 @@ possible of the text after the last backslash.
   MODIFYSTRING			= 0x00010000 (DM)
 
 Modifies the B<$text> element of returning array to match the displayed text.
-This flag has no effect unless the END_ELLIPSIS or PATH_ELLIPSIS flag is
-specified.
+This flag has no effect unless the END_ELLIPSIS, PATH_ELLIPSIS or WORD_ELLIPSIS
+flag is specified.
 
   RTLREADING			= 0x00020000 (SM & DM)
 
@@ -3769,11 +4747,50 @@ Extends space characters to match given justification width (B<$just_width>).
 
 B<Note:> Allways use B<$just_width> parameter with B<JUSTIFY> flag!
 
-See also L</Font> and L</Color>.
+See also L</Font>, L</Fit>, L</Color>, L</FontSpace> and L</Write2>.
+
+=head2 Write2
+
+  $height = $dc->Write2($text, $x, $y, $w, [$flags, [$indento, [$hspace, [$vspace]]]]);
+  ($width, $height, $proctext) = $dc->Write2($text, $x, $y, $w, [$flags, [$indent, [$hspace, [$vspace]]]]);
+
+The B<Write2> method adds multiline justification, custom vertical and
+horisontal spacing and left indent; Returns B<$height> in scalar context and
+B<$width, $height, $proctext> where B<$proctext> is possibly modified text
+(e.g. added line breaks).
+
+Reasonable only when justification, left indent, custom vertical and/or
+horizontal spacing is needed, othervise consider to use regular B<L</Write>>
+method.
+
+  LEFT				= 0x00000000
+
+Aligns text to the left.
+
+  RIGHT				= 0x00000002
+
+Aligns text to the right.
+
+  CENTER			= 0x00080000
+
+Centers text horizontally in the rectangle.
+
+  JUSTIFY			= 0x80000000 
+
+Extends space characters to match given width.
+
+  UTF8				= 0x20000000
+
+Treat B<$text> as B<UTF-8> encoded string. Note that selected font must support
+desired unicode characters. Available for NT platforms and also supported by
+Microsoft Layer for Unicode.
+
+See also L</Write>, L</Fit> and L</FontSpace>.
 
 =head1 SEE ALSO
 
-L<Win32::Printer::Enum>, Win32 Platform SDK GDI documentation.
+L<Win32::Printer::Enum>, L<Win32::Printer::Direct>, Win32 Platform SDK GDI
+documentation.
 
 =head1 AUTHOR
 
@@ -3794,8 +4811,9 @@ licensed under terms of B<GNU GPL>. I<AFPL Ghostscript> is licensed under the
 terms of B<Aladdin Free Public License>. Download I<Ghostscript> from
 L<http://sourceforge.net>.
 
-B<Win32::Printer, Copyright (C) 2003 Edgars Binans.>
+B<Win32::Printer, Copyright (C) 2003-2005 Edgars Binans.>
 
-B<THIS LIBRARY IS LICENSED UNDER THE TERMS OF GNU LESSER GENERAL PUBLIC LICENSE>
+B<THIS LIBRARY IS LICENSED UNDER THE TERMS OF GNU LESSER GENERAL PUBLIC LICENSE
+V2.1>
 
 =cut

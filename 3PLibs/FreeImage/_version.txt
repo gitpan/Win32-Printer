@@ -1,1 +1,1 @@
-FreeImage 3.4.0
+FreeImage 3.5.3

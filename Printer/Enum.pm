@@ -1,13 +1,13 @@
 #------------------------------------------------------------------------------#
 # Win32::Printer::Enum                                                         #
-# V 0.0.4 (2004-04-21)                                                         #
-# Copyright (C) 2003-2004 Edgars Binans <admin@wasx.net>                       #
+# V 0.0.5 (2005-02-07)                                                         #
+# Copyright (C) 2003-2005 Edgars Binans <admin@wasx.net>                       #
 # http://www.wasx.net                                                          #
 #------------------------------------------------------------------------------#
 
 package Win32::Printer::Enum;
 
-use 5.008;
+use 5.006;
 use strict;
 use warnings;
 
@@ -17,7 +17,7 @@ require Exporter;
 
 use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD );
 
-$VERSION = '0.0.4';
+$VERSION = '0.0.5';
 
 @ISA = qw( Exporter );
 
@@ -704,8 +704,9 @@ B<Edgars Binans E<lt>admin@wasx.netE<gt>. http://www.wasx.net>
 
 =head1 COPYRIGHT AND LICENSE
 
-B<Win32::Printer, Copyright (C) 2003 Edgars Binans.>
+B<Win32::Printer, Copyright (C) 2003-2005 Edgars Binans.>
 
-B<THIS LIBRARY IS LICENSED UNDER THE TERMS OF GNU LESSER GENERAL PUBLIC LICENSE>
+B<THIS LIBRARY IS LICENSED UNDER THE TERMS OF GNU LESSER GENERAL PUBLIC LICENSE
+V2.1>
 
 =cut

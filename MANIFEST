@@ -15,6 +15,7 @@
 Lesser.txt
 Makefile.PL
 MANIFEST
+Printer/Direct.pm
 Printer/Enum.pm
 Printer.pm
 Printer.xs
