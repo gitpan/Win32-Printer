@@ -17,7 +17,7 @@ require Exporter;
 
 use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD );
 
-$VERSION = '0.6.3';
+$VERSION = '0.6.3.1';
 
 @ISA = qw( Exporter );
 
