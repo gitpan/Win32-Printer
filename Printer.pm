@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------#
 # Win32::Printer                                                               #
-# V 0.6.6 (2003-10-28)                                                         #
+# V 0.6.6.1 (2003-11-03)                                                       #
 # Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            #
 # http://www.wasx.net                                                          #
 #------------------------------------------------------------------------------#
@@ -17,7 +17,7 @@ require Exporter;
 
 use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD %params @pdfend);
 
-$VERSION = '0.6.6';
+$VERSION = '0.6.6.1';
 
 @ISA = qw( Exporter );
 
@@ -1782,9 +1782,9 @@ Win32 GDI graphical printing
 
 =head1 INSTALLATION
 
-=head2 Binnary instalation
+=head2 Binary instalation
 
-B<1.> Download binnary distribution of the module from I<http://www.wasx.net>.
+B<1.> Download binary distribution of the module from I<http://www.wasx.net>.
 
 B<2.> Unzip distribution file and copy content to appropriate directories.
 

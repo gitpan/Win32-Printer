@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------#
 # Win32::Printer::Enum                                                         #
-# V 0.0.1 (2003-08-28)                                                         #
+# V 0.0.2 (2003-11-03)                                                         #
 # Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            #
 # http://www.wasx.net                                                          #
 #------------------------------------------------------------------------------#
@@ -17,7 +17,7 @@ require Exporter;
 
 use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD );
 
-$VERSION = '0.0.1';
+$VERSION = '0.0.2';
 
 @ISA = qw( Exporter );
 
@@ -61,7 +61,7 @@ sub Printers {
   if ((!defined($flag_or_server)) or ($flag_or_server eq "")) {
     $flag = 2;
     $server = "";
-  } elsif ($flag_or_server =~ /\d+/) {
+  } elsif ($flag_or_server =~ /^\d+$/) {
     $flag = $flag_or_server == 32 ? 2 | $flag_or_server : $flag_or_server;
     $server = "";
   } else {
