@@ -13,7 +13,7 @@ my ($inc, $lib, $lin, $ccf) = ("", "", "", "");
 
 print "Inlude FreeImage image support? [y]: ";
 my $in = "y";
-$in = <>;
+$in = <STDIN>;
 if ($in !~ /n/) {
   $inc = '-I.\3PLibs\FreeImage ';
   $lib = '-l.\3PLibs\FreeImage\FreeImage.lib ';
@@ -23,7 +23,7 @@ if ($in !~ /n/) {
 
 print "Inlude Ghostscript PDF support? [y]: ";
 $in = "y";
-$in = <>;
+$in = <STDIN>;
 if ($in !~ /n/) {
   $inc .= '-I.\3PLibs\Ghostscript ';
   $lib .= '-l.\3PLibs\Ghostscript\gsdll32.lib ';
@@ -33,7 +33,7 @@ if ($in !~ /n/) {
 
 print "Inlude EBar barcode support? [y]: ";
 $in = "y";
-$in = <>;
+$in = <STDIN>;
 if ($in !~ /n/) {
   $inc .= '-I.\3PLibs\EBar';
   $lib .= '-l.\3PLibs\EBar\EBar.lib';
@@ -47,7 +47,7 @@ WriteMakefile(
   'ABSTRACT_FROM'	=> 'Printer.pm',
   'AUTHOR'		=> 'Edgars Binans <admin@wasx.net>',
   'INC'			=>  $inc,
-  'LIBS'		=>  "-lDelayimp.lib $lib",
+  'LIBS'		=>  "Delayimp.lib $lib",
   'LDDLFLAGS'		=>  "$Config{lddlflags} $lin",
   'CCCDLFLAGS'		=>  $ccf
 );

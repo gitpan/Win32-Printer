@@ -1,7 +1,7 @@
 #------------------------------------------------------------------------------#
 # Win32::Printer::Enum                                                         #
-# V 0.0.3 (2003-01-07)                                                         #
-# Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            #
+# V 0.0.4 (2004-04-21)                                                         #
+# Copyright (C) 2003-2004 Edgars Binans <admin@wasx.net>                       #
 # http://www.wasx.net                                                          #
 #------------------------------------------------------------------------------#
 
@@ -17,7 +17,7 @@ require Exporter;
 
 use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD );
 
-$VERSION = '0.0.3';
+$VERSION = '0.0.4';
 
 @ISA = qw( Exporter );
 
@@ -74,33 +74,36 @@ sub Printers {
     croak "ERROR: Cannot enumerate printers! ${\Win32::Printer::_GetLastError()}";
   }
 
-  my @return;
-  my @lines = split(/\n/, $return);
-  for my $i (0..$#lines) {
-    (
-      $return[$i]{ServerName},
-      $return[$i]{PrinterName},
-      $return[$i]{ShareName},
-      $return[$i]{PortName},
-      $return[$i]{DriverName},
-      $return[$i]{Comment},
-      $return[$i]{Location},
-      $return[$i]{SepFile},
-      $return[$i]{PrintProcessor},
-      $return[$i]{Datatype},
-      $return[$i]{Parameters},
-      $return[$i]{Attributes},
-      $return[$i]{Priority},
-      $return[$i]{DefaultPriority},
-      $return[$i]{StartTime},
-      $return[$i]{UntilTime},
-      $return[$i]{Status},
-      $return[$i]{Jobs},
-      $return[$i]{AveragePPM}
-    ) = split(/\t/, $lines[$i]);
+  if (wantarray) {
+    my @return;
+    my @lines = split(/\n/, $return);
+    for my $i (0..$#lines) {
+      (
+        $return[$i]{ServerName},
+        $return[$i]{PrinterName},
+        $return[$i]{ShareName},
+        $return[$i]{PortName},
+        $return[$i]{DriverName},
+        $return[$i]{Comment},
+        $return[$i]{Location},
+        $return[$i]{SepFile},
+        $return[$i]{PrintProcessor},
+        $return[$i]{Datatype},
+        $return[$i]{Parameters},
+        $return[$i]{Attributes},
+        $return[$i]{Priority},
+        $return[$i]{DefaultPriority},
+        $return[$i]{StartTime},
+        $return[$i]{UntilTime},
+        $return[$i]{Status},
+        $return[$i]{Jobs},
+        $return[$i]{AveragePPM}
+      ) = split(/\t/, $lines[$i]);
+    }
+    return @return;
+  } else {
+    return $return;
   }
-
-  return wantarray ? @return : $return;
 
 }
 
@@ -115,30 +118,34 @@ sub Drivers {
   if (!defined($env)) { $env = ""; }
 
   my $return = Win32::Printer::_EnumPrinterDrivers($server, $env);
+
   unless (defined($return)) {
     croak "ERROR: Cannot enumerate printer drivers! ${\Win32::Printer::_GetLastError()}";
   }
 
-  my @return;
-  my @lines = split(/\n/, $return);
-  for my $i (0..$#lines) {
-    (
-      $return[$i]{Version},
-      $return[$i]{Name},
-      $return[$i]{Environment},
-      $return[$i]{DriverPath},
-      $return[$i]{DataFile},
-      $return[$i]{ConfigFile},
-      $return[$i]{HelpFile}, 
-      $return[$i]{DependentFiles},
-      $return[$i]{MonitorName},
-      $return[$i]{DefaultDataType}
-    ) = split(/\t/, $lines[$i]);
-    my @depfiles = split(/\*/, $return[$i]{DependentFiles});
-    $return[$i]{DependentFiles} = \@depfiles;
+  if (wantarray) {
+    my @return;
+    my @lines = split(/\n/, $return);
+    for my $i (0..$#lines) {
+      (
+        $return[$i]{Version},
+        $return[$i]{Name},
+        $return[$i]{Environment},
+        $return[$i]{DriverPath},
+        $return[$i]{DataFile},
+        $return[$i]{ConfigFile},
+        $return[$i]{HelpFile}, 
+        $return[$i]{DependentFiles},
+        $return[$i]{MonitorName},
+        $return[$i]{DefaultDataType}
+      ) = split(/\t/, $lines[$i]);
+      my @depfiles = split(/\*/, $return[$i]{DependentFiles});
+      $return[$i]{DependentFiles} = \@depfiles;
+    }
+    return @return;
+  } else {
+    return $return;
   }
-
-  return wantarray ? @return : $return;
 
 }
 
@@ -154,18 +161,21 @@ sub Ports {
     croak "ERROR: Cannot enumerate printer ports! ${\Win32::Printer::_GetLastError()}";
   }
 
-  my @return;
-  my @lines = split(/\n/, $return);
-  for my $i (0..$#lines) {
-    (
-      $return[$i]{PortName},
-      $return[$i]{MonitorName},
-      $return[$i]{Description},
-      $return[$i]{PortType}
-    ) = split(/\t/, $lines[$i]);
+  if (wantarray) {
+    my @return;
+    my @lines = split(/\n/, $return);
+    for my $i (0..$#lines) {
+      (
+        $return[$i]{PortName},
+        $return[$i]{MonitorName},
+        $return[$i]{Description},
+        $return[$i]{PortType}
+      ) = split(/\t/, $lines[$i]);
+    }
+    return @return;
+  } else {
+    return $return;
   }
-
-  return wantarray ? @return : $return;
 
 }
 
@@ -181,17 +191,20 @@ sub Monitors {
     croak "ERROR: Cannot enumerate printer monitors! ${\Win32::Printer::_GetLastError()}";
   }
 
-  my @return;
-  my @lines = split(/\n/, $return);
-  for my $i (0..$#lines) {
-    (
-      $return[$i]{Name},
-      $return[$i]{Environment},
-      $return[$i]{DLLName}
-    ) = split(/\t/, $lines[$i]);
+  if (wantarray) {
+    my @return;
+    my @lines = split(/\n/, $return);
+    for my $i (0..$#lines) {
+      (
+        $return[$i]{Name},
+        $return[$i]{Environment},
+        $return[$i]{DLLName}
+      ) = split(/\t/, $lines[$i]);
+    }
+    return @return;
+  } else {
+    return $return;
   }
-
-  return wantarray ? @return : $return;
 
 }
 
@@ -210,9 +223,12 @@ sub Processors {
     croak "ERROR: Cannot enumerate print processors! ${\Win32::Printer::_GetLastError()}";
   }
 
-  my @return = split(/\n/, $return);
-
-  return wantarray ? @return : $return;
+  if (wantarray) {
+    my @return = split(/\n/, $return);
+    return @return;
+  } else {
+    return $return;
+  }
 
 }
 
@@ -231,9 +247,12 @@ sub Types {
     croak "ERROR: Cannot enumerate print processor data types! ${\Win32::Printer::_GetLastError()}";
   }
 
-  my @return = split(/\n/, $return);
-
-  return wantarray ? @return : $return;
+  if (wantarray) {
+    my @return = split(/\n/, $return);
+    return @return;
+  } else {
+    return $return;
+  }
 
 }
 
@@ -252,33 +271,36 @@ sub Jobs {
     croak "ERROR: Cannot enumerate print jobs! ${\Win32::Printer::_GetLastError()}";
   }
 
-  my @return;
-  my @lines = split(/\n/, $return);
-  for my $i (0..$#lines) {
-    (
-      $return[$i]{JobId},
-      $return[$i]{PrinterName},
-      $return[$i]{MachineName},
-      $return[$i]{UserName},
-      $return[$i]{Document},
-      $return[$i]{NotifyName},
-      $return[$i]{Datatype},
-      $return[$i]{PrintProcessor},
-      $return[$i]{Parameters},
-      $return[$i]{DriverName},
-      $return[$i]{Status},
-      $return[$i]{StatusNr},
-      $return[$i]{Priority},
-      $return[$i]{Position},
-      $return[$i]{StartTime},
-      $return[$i]{UntilTime},
-      $return[$i]{TotalPages},
-      $return[$i]{Size},
-      $return[$i]{PagesPrinted}
-    ) = split(/\t/, $lines[$i]);
+  if (wantarray) {
+    my @return;
+    my @lines = split(/\n/, $return);
+    for my $i (0..$#lines) {
+      (
+        $return[$i]{JobId},
+        $return[$i]{PrinterName},
+        $return[$i]{MachineName},
+        $return[$i]{UserName},
+        $return[$i]{Document},
+        $return[$i]{NotifyName},
+        $return[$i]{Datatype},
+        $return[$i]{PrintProcessor},
+        $return[$i]{Parameters},
+        $return[$i]{DriverName},
+        $return[$i]{Status},
+        $return[$i]{StatusNr},
+        $return[$i]{Priority},
+        $return[$i]{Position},
+        $return[$i]{StartTime},
+        $return[$i]{UntilTime},
+        $return[$i]{TotalPages},
+        $return[$i]{Size},
+        $return[$i]{PagesPrinted}
+      ) = split(/\t/, $lines[$i]);
+    }
+    return @return;
+  } else {
+    return $return;
   }
-
-  return wantarray ? @return : $return;
 
 }
 

@@ -1,7 +1,7 @@
 #------------------------------------------------------------------------------#
 # Win32::Printer                                                               #
-# V 0.7.1 (2004-04-11)                                                         #
-# Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            #
+# V 0.8.0 (2004-04-21)                                                         #
+# Copyright (C) 2003-2004 Edgars Binans <admin@wasx.net>                       #
 # http://www.wasx.net                                                          #
 #------------------------------------------------------------------------------#
 
@@ -17,7 +17,7 @@ require Exporter;
 
 use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD $debuglevel $numcroaked );
 
-$VERSION = '0.7.1';
+$VERSION = '0.8.0';
 
 @ISA = qw( Exporter );
 
@@ -57,7 +57,7 @@ $VERSION = '0.7.1';
 
 	ALTERNATE WINDING
 
-	CR_AND CR_OR CR_XOR CR_DIFF CR_COPY
+	CR_OFF CR_AND CR_OR CR_XOR CR_DIFF CR_COPY
 
 	ANSI DEFAULT SYMBOL SHIFTJIS HANGEUL GB2312 CHINESEBIG5 OEM JOHAB HEBREW
 	ARABIC GREEK TURKISH VIETNAMESE THAI EASTEUROPE RUSSIAN MAC BALTIC
@@ -290,6 +290,7 @@ sub HS_CROSS			{ 4; }
 sub HS_DIAGCROSS		{ 5; }
 
 # Path modes
+sub CR_OFF			{ 0; }
 sub CR_AND			{ 1; }
 sub CR_OR			{ 2; }
 sub CR_XOR			{ 3; }
@@ -458,35 +459,6 @@ sub FW_DEMIBOLD			{ 600; }
 sub FW_ULTRABOLD		{ 800; }
 sub FW_BLACK			{ 900; }
 
-# FreeImage file formats:
-sub FIF_UNKNOWN			{ -1; }
-sub FIF_BMP			{ 0; }
-sub FIF_ICO			{ 1; }
-sub FIF_JPEG			{ 2; }
-sub FIF_JNG			{ 3; }
-sub FIF_KOALA			{ 4; }
-sub FIF_LBM			{ 5; }
-sub FIF_IFF			{ 5; }
-sub FIF_MNG			{ 6; }
-sub FIF_PBM			{ 7; }
-sub FIF_PBMRAW			{ 8; }
-sub FIF_PCD			{ 9; }
-sub FIF_PCX			{ 10; }
-sub FIF_PGM			{ 11; }
-sub FIF_PGMRAW			{ 12; }
-sub FIF_PNG			{ 13; }
-sub FIF_PPM			{ 14; }
-sub FIF_PPMRAW			{ 15; }
-sub FIF_RAS			{ 16; }
-sub FIF_TARGA			{ 17; }
-sub FIF_TIFF			{ 18; }
-sub FIF_WBMP			{ 19; }
-sub FIF_PSD			{ 20; }
-sub FIF_CUT			{ 21; }
-sub FIF_XBM			{ 22; }
-sub FIF_XPM			{ 23; }
-
-
 #------------------------------------------------------------------------------#
 
 sub new {
@@ -514,18 +486,18 @@ sub _init {
 
   (%{$self->{params}}) = @_;
 
+  for (keys %{$self->{params}}) {
+    if ($_ !~ /^debug$|^dc$|^printer$|^dialog$|^file$|^pdf$|^prompt$|^copies$|^collate$|^minp$|^maxp$|^orientation$|^papersize$|^duplex$|^description$|^unit$|^source$|^color$|^height$|^width$/) {
+      _carp qq^WARNING: Unknown attribute "$_"!\n^;
+    }
+  }
+
   $numcroaked = 0;
 
   if ((!_num($self->{params}->{'debug'})) or ($self->{params}->{'debug'} > 2)) {
     $debuglevel = 0;
   } else {
     $debuglevel = $self->{params}->{'debug'};
-  }
-
-  for (keys %{$self->{params}}) {
-    if ($_ !~ /debug|dc|printer|dialog|file|pdf|prompt|copies|collate|minp|maxp|orientation|papersize|duplex|description|unit|source|color|height|width/) {
-      _carp qq^WARNING: Unknown attribute "$_"!\n^;
-    }
   }
 
   my $dialog;
@@ -575,24 +547,24 @@ sub _init {
   if (($self->{params}->{'width'} > 0) and ($self->{params}->{'height'} > 0)) {
     if (defined($self->{params}->{'unit'})) {
       if ($self->{params}->{'unit'} eq "mm") {
-        $self->{params}->{'width'} = $self->{params}->{'width'} * 10;
-        $self->{params}->{'height'} = $self->{params}->{'height'} * 10;
+        $self->{params}->{'width'} *= 10;
+        $self->{params}->{'height'} *= 10;
       } elsif ($self->{params}->{'unit'} eq "cm") {
-        $self->{params}->{'width'} = $self->{params}->{'width'} * 100;
-        $self->{params}->{'height'} = $self->{params}->{'height'} * 100;
+        $self->{params}->{'width'} *= 100;
+        $self->{params}->{'height'} *= 100;
       } elsif ($self->{params}->{'unit'} eq "pt") {
-        $self->{params}->{'width'} = $self->{params}->{'width'} * 254.09836 / 72;
-        $self->{params}->{'height'} = $self->{params}->{'height'} * 254.09836 / 72;
+        $self->{params}->{'width'} *= 254.09836 / 72;
+        $self->{params}->{'height'} *= 254.09836 / 72;
       } elsif ($self->{params}->{'unit'} =~ /^\d+\.*\d*$/i) {
-        $self->{params}->{'width'} = $self->{params}->{'width'} * 254.09836 / $self->{params}->{'unit'};
-        $self->{params}->{'height'} = $self->{params}->{'height'} * 254.09836 / $self->{params}->{'unit'};
+        $self->{params}->{'width'} *= 254.09836 / $self->{params}->{'unit'};
+        $self->{params}->{'height'} *= 254.09836 / $self->{params}->{'unit'};
       } else {
-        $self->{params}->{'width'} = $self->{params}->{'width'} * 254.09836;
-        $self->{params}->{'height'} = $self->{params}->{'height'} * 254.09836;
+        $self->{params}->{'width'} *= 254.09836;
+        $self->{params}->{'height'} *= 254.09836;
       }
     } else {
-      $self->{params}->{'width'} = $self->{params}->{'width'} * 254.09836;
-      $self->{params}->{'height'} = $self->{params}->{'height'} * 254.09836;
+      $self->{params}->{'width'} *= 254.09836;
+      $self->{params}->{'height'} *= 254.09836;
     }
   } elsif (($self->{params}->{'width'} < 0) or ($self->{params}->{'height'} < 0)) {
     $self->{params}->{'width'} = 0;
@@ -610,6 +582,7 @@ sub _init {
     _croak "ERROR: Cannot create printer object! ${\_GetLastError()}";
     return undef;
   }
+  $self->{odc} = $self->{dc};
 
   unless (defined($self->Unit($self->{params}->{'unit'} || 1))) {
     _croak "ERROR: Cannot set default units!\n";
@@ -627,7 +600,10 @@ sub _init {
     } elsif ((defined($self->{params}->{'description'})) and ($self->{params}->{'description'} ne "")) {
       $suggest = $self->{params}->{'description'};
       $suggest =~ s/[\"\*\/\:\<\>\?\\\|]|[\x00-\x1f]/-/g;
-      $suggest =~ s/\..*?$|\s\s|^\s|\s$//g;
+      $suggest = reverse $suggest;
+      $suggest =~ s/^.*?\.//;
+      $suggest = reverse $suggest;
+      $suggest =~ s/\s\s//g;
     } else {
       $suggest = "Printer";
     }
@@ -827,7 +803,7 @@ sub Unit {
   $self->{xsize} = $self->_xp2un($self->Caps(PHYSICALWIDTH));
   $self->{ysize} = $self->_yp2un($self->Caps(PHYSICALHEIGHT));
 
-  unless (($self->{xres} > 0) && ($self->{yres} > 0) && ($self->{xsize} > 0) && ($self->{ysize} > 0)) {
+  unless (($self->{xres} > 0) && ($self->{yres} > 0)) {
     _croak "ERROR: Cannot get printer resolution! ${\_GetLastError()}";
     return undef;
   }
@@ -842,7 +818,7 @@ sub Debug {
 
   my $self = shift;
 
-  if ($#_ > 0) { _croak "ERROR: Wrong number of parameters!\n"; }
+  if ($#_ > 0) { _carp "WARNING: Too many actual parameters!\n"; }
 
   if ($#_ == 0) {
     $numcroaked = 0;
@@ -865,21 +841,36 @@ sub Next {
 
   my $self = shift;
 
-  if ($#_ > 1) { _carp "WARNING: Too many actual parameters!\n"; }
+  if ($self->{emfstate}) {
 
-  my $desc = shift;
-  my $file = shift;
+    if ($#_ > -1) { 
+      $self->{emfname} = shift;
+      $self->{emfw} = shift;
+      $self->{emfh} = shift;
+    }
 
-  unless (defined($self->End())) {
-    _croak "ERROR: Cannot end previous job!\n";
-    return undef;
+    return ($self->MetaEnd, $self->Meta($self->{emfname}, $self->{emfw}, $self->{emfh}));
+
+  } else {
+
+    if ($#_ > 1) { _carp "WARNING: Too many actual parameters!\n"; }
+
+    my $desc = shift;
+    my $file = shift;
+
+    my $ret = $self->End();
+
+    unless (defined($ret)) {
+      _croak "ERROR: Cannot end previous job!\n";
+      return undef;
+    }
+    unless (defined($self->Start($desc, $file))) {
+      _croak "ERROR: Cannot start next job!\n";
+      return undef;
+    }
+
+    return $ret;
   }
-  unless (defined($self->Start($desc, $file))) {
-    _croak "ERROR: Cannot start next job!\n";
-    return undef;
-  }
-
-  return 1;
 
 }
 
@@ -888,6 +879,11 @@ sub Next {
 sub Start {
 
   my $self = shift;
+
+  if ($self->{emfstate}) {
+    _croak "ERROR: Starting document not allowed in EMF mode!\n";
+    return undef;
+  }
 
   if ($#_ > 1) { _carp "WARNING: Too many actual parameters!\n"; }
 
@@ -901,7 +897,9 @@ sub Start {
       $file = $self->{params}->{'file'};
     }
     while (-f $file) { 
-      $file =~ s/(?:\((\d+)\))*(\..*)*$/my $i; $1 ? ($i = $1 + 1) : ($i = 1); $2 ? "\($i\)$2" : "\($i\)"/e;
+      if ($file !~ s/(.*\\*)(.*)\((\d+)\)(.*)\./my $i = $3; $i++; "$1$2($i)."/e) {
+        $file =~ s/(.*\\*)(.*)\./$1$2(1)\./
+      }
       $self->{params}->{'file'} = $file;
     }
   }
@@ -940,6 +938,11 @@ sub End {
 
   my $self = shift;
 
+  if ($self->{emfstate}) {
+    _croak "ERROR: Ending document not allowed in EMF mode!\n";
+    return undef;
+  }
+
   if ($#_ > -1) { _carp "WARNING: Too many actual parameters!\n"; }
 
   unless (_EndPage($self->{dc}) > 0) {
@@ -968,6 +971,11 @@ sub Abort {
 
   my $self = shift;
 
+  if ($self->{emfstate}) {
+    _croak "ERROR: Aborting document not allowed in EMF mode!\n";
+    return undef;
+  }
+
   if ($#_ > -1) { _carp "WARNING: Too many actual parameters!\n"; }
 
   unless (_AbortDoc($self->{dc})) {
@@ -981,6 +989,7 @@ sub Abort {
   }
 
   if (defined($self->{params}->{'file'})) { return $self->{params}->{'file'}; }
+
   return 1;
 
 }
@@ -990,6 +999,11 @@ sub Abort {
 sub Page {
 
   my $self = shift;
+
+  if ($self->{emfstate}) {
+    _croak "ERROR: Starting new page not allowed in EMF mode!\n";
+    return undef;
+  }
 
   if ($#_ > -1) { _carp "WARNING: Too many actual parameters!\n"; }
 
@@ -1032,6 +1046,7 @@ sub Space {
 
   my $xoff = $self->Caps(PHYSICALOFFSETX);
   my $yoff = $self->Caps(PHYSICALOFFSETY);
+
   unless (defined($xoff) && defined($yoff)) {
     _croak "ERROR: Cannot get the physical offset!\n";
     return undef;
@@ -1901,6 +1916,14 @@ sub PClip {
   _num($mode);
   return undef if $numcroaked;
 
+  if ($mode == CR_OFF) {
+    unless (_DeleteClipPath($self->{dc})) {
+      _croak "ERROR: Cannot remove clip path! ${\_GetLastError()}";
+      return undef;
+    }
+    return 1;
+  }
+
   unless (_SelectClipPath($self->{dc}, $mode)) {
     _croak "ERROR: Cannot create clip path! ${\_GetLastError()}";
     return undef;
@@ -1995,6 +2018,13 @@ sub Image {
 
     my $file = shift;
 
+    if ($file =~ /^-*\d+$/) {
+      _GetEnhSize($self->{dc}, $file, $width, $height);
+      $width = $self->_xp2un($width);
+      $height = $self->_yp2un($height);
+      return ($width, $height);
+    }
+
     if (defined($self->{imagef}->{$file})) {
       _GetEnhSize($self->{dc}, $self->{imagef}->{$file}, $width, $height);
       $width = $self->_xp2un($width);
@@ -2018,62 +2048,7 @@ sub Image {
       }
     } else {
 
-      $fref = _LoadBitmap($self->{dc}, $file, FIF_UNKNOWN);
-
-      unless ($fref) {
-        if ($file =~ /\.BMP$/i) {
-          $fref = _LoadBitmap($self->{dc}, $file, FIF_BMP);
-        } elsif ($file =~ /\.CUT$/i) {
-          $fref = _LoadBitmap($self->{dc}, $file, FIF_CUT);
-        } elsif ($file =~ /\.ICO$/i) {
-          $fref = _LoadBitmap($self->{dc}, $file, FIF_ICO);
-        } elsif ($file =~ /\.JPG$|\.JPEG$/i) {
-          $fref = _LoadBitmap($self->{dc}, $file, FIF_JPEG);
-        } elsif ($file =~ /\.JNG$/i) {
-          $fref = _LoadBitmap($self->{dc}, $file, FIF_JNG);
-        } elsif ($file =~ /\.KOA$/i) {
-          $fref = _LoadBitmap($self->{dc}, $file, FIF_KOALA);
-        } elsif ($file =~ /\.LBM$|\.IFF$/i) {
-          $fref = _LoadBitmap($self->{dc}, $file, FIF_LBM);
-        } elsif ($file =~ /\.MNG$/i) {
-          $fref = _LoadBitmap($self->{dc}, $file, FIF_MNG);
-        } elsif ($file =~ /\.PBM$/i) {
-          $fref = _LoadBitmap($self->{dc}, $file, FIF_PBM);
-          unless ($fref) {
-            $fref = _LoadBitmap($self->{dc}, $file, FIF_PBMRAW);
-          }
-        } elsif ($file =~ /\.PCD$/i) {
-          $fref = _LoadBitmap($self->{dc}, $file, FIF_PCD);
-        } elsif ($file =~ /\.PCX$/i) {
-          $fref = _LoadBitmap($self->{dc}, $file, FIF_PCX);
-        } elsif ($file =~ /\.PGM$/i) {
-          $fref = _LoadBitmap($self->{dc}, $file, FIF_PGM);
-          unless ($fref) {
-            $fref = _LoadBitmap($self->{dc}, $file, FIF_PGMRAW);
-          }
-        } elsif ($file =~ /\.PNG$/i) {
-          $fref = _LoadBitmap($self->{dc}, $file, FIF_PNG);
-        } elsif ($file =~ /\.PPM$/i) {
-          $fref = _LoadBitmap($self->{dc}, $file, FIF_PPM);
-          unless ($fref) {
-            $fref = _LoadBitmap($self->{dc}, $file, FIF_PPMRAW);
-          }
-        } elsif ($file =~ /\.RAS$/i) {
-          $fref = _LoadBitmap($self->{dc}, $file, FIF_RAS);
-        } elsif ($file =~ /\.TGA$/i) {
-          $fref = _LoadBitmap($self->{dc}, $file, FIF_TARGA);
-        } elsif ($file =~ /\.TIF$|\.TIFF$/i) {
-          $fref = _LoadBitmap($self->{dc}, $file, FIF_TIFF);
-        } elsif ($file =~ /\.WBMP$/i) {
-          $fref = _LoadBitmap($self->{dc}, $file, FIF_WBMP);
-        } elsif ($file =~ /\.PSD$/i) {
-          $fref = _LoadBitmap($self->{dc}, $file, FIF_PSD);
-        } elsif ($file =~ /\.XBM$/i) {
-          $fref = _LoadBitmap($self->{dc}, $file, FIF_XBM);
-        } elsif ($file =~ /\.XPM$/i) {
-          $fref = _LoadBitmap($self->{dc}, $file, FIF_XPM);
-        }
-      }
+      $fref = _LoadBitmap($self->{dc}, $file, -1);
 
       unless ($fref) {
         _croak "ERROR: Cannot load bitmap! ${\_GetLastError()}";
@@ -2090,6 +2065,142 @@ sub Image {
     $height = $self->_yp2un($height);
     return wantarray ? ($fref, $width, $height) : $fref;
 
+  }
+
+}
+
+#------------------------------------------------------------------------------#
+
+sub Meta {
+
+  my $self = shift;
+
+  if ($#_ > 2) { _carp "WARNING: Too many actual parameters!\n"; }
+
+  if ($self->{emfstate}) {
+    _croak qq^ERROR: There is allready started EMF!\n^;
+  }
+
+  my $fname = shift;
+  my $width = shift;
+  my $height = shift;
+
+  if ($fname) {
+    my $prompt;
+    if ($fname =~ s/^FILE://i) { $prompt = 1; }
+
+    $fname =~ s/\//\\/g;
+    while (-f $fname) { 
+      if ($fname !~ s/(.*\\*)(.*)\((\d+)\)(.*)\./my $i = $3; $i++; "$1$2($i)."/e) {
+        $fname =~ s/(.*\\*)(.*)\./$1$2(1)\./
+      }
+    }
+    my $file = $fname;
+    $file =~ s/(.*\\)//g;
+    my $dir = $1;
+    unless ($dir) { $dir = '.\\'; }
+    if ($prompt) {
+      $fname = _SaveAs(3, $file, $dir);
+    }
+    if (($file =~ /[\"\*\/\:\<\>\?\\\|]|[\x00-\x1f]/) or (!(-d $dir))) {
+      _croak "ERROR: Cannot create printer object! Invalid filename\n";
+      return undef;
+    }
+  } else {
+    $fname = "";
+  }
+
+  $numcroaked = 0;
+  _num($width);
+  _num($height);
+  return undef if $numcroaked;
+
+  if (!defined($width) or !defined($height)) {
+    $width = 0;
+    $height = 0;
+  } else {
+    $self->{emfw} = $width;
+    $self->{emfh} = $height;
+  }
+
+  if (($width > 0) and ($height > 0)) {
+    if (defined($self->{params}->{'unit'})) {
+      if ($self->{params}->{'unit'} eq "mm") {
+        $width *= 100;
+        $height *= 100;
+      } elsif ($self->{params}->{'unit'} eq "cm") {
+        $width *= 1000;
+        $height *= 1000;
+      } elsif ($self->{params}->{'unit'} eq "pt") {
+        $width *= 2540.9836 / 72;
+        $height *= 2540.9836 / 72;
+      } elsif ($self->{params}->{'unit'} =~ /^\d+\.*\d*$/i) {
+        $width *= 2540.9836 / $self->{params}->{'unit'};
+        $height *= 2540.9836 / $self->{params}->{'unit'};
+      } else {
+        $width *= 2540.9836;
+        $height *= 2540.9836;
+      }
+    } else {
+      $width *= 2540.9836;
+      $height *= 2540.9836;
+    }
+  } elsif (($width < 0) and ($height < 0)) {
+    _croak qq^ERROR: height, width must be positive values!\n^;
+  }
+
+  my $meta = _CreateMeta($self->{dc}, $fname, $width, $height);
+  if ($meta) {
+    $self->{emfstate} = 1;
+    $self->{dc} = $meta;
+  } else {
+    _croak "ERROR: Cannot begin EMF! ${\_GetLastError()}";
+    return undef;
+  }
+
+  unless (defined($self->Pen(1, 0, 0, 0))) {
+    _croak "ERROR: Cannot create default pen!\n";
+    return undef;
+  }
+  unless (defined($self->Color(0, 0, 0))) {
+    _croak "ERROR: Cannot set default color!\n";
+    return undef;
+  }
+  unless (defined($self->Brush(128, 128, 128))) {
+    _croak "ERROR: Cannot create default brush!\n";
+    return undef;
+  }
+  unless (defined($self->Font())) {
+    _croak "ERROR: Cannot create default font!\n";
+    return undef;
+  }
+
+  $self->{emfname} = $fname;
+  return $fname;
+
+}
+
+#------------------------------------------------------------------------------#
+
+sub MetaEnd {
+
+  my $self = shift;
+
+  if ($#_ > -1) { _carp "WARNING: Too many actual parameters!\n"; }
+
+  if (!$self->{emfstate}) {
+    _croak qq^ERROR: There is no beginning of the EMF!\n^;
+  }
+
+  my $return = _CloseMeta($self->{dc});
+  if ($return) {
+    $self->{emfstate} = 0;
+    $self->{dc} = $self->{odc};
+    $self->{imager}->{$return} = 0;
+    return $return;
+  } else {
+    _croak "ERROR: Cannot end EMF! ${\_GetLastError()}";
+    return undef;
   }
 
 }
@@ -2139,6 +2250,8 @@ sub Close {
       }
     }
   } else {
+
+    $self->MetaEnd() if $self->{emfstate};
 
     for (keys %{$self->{obj}}) {
      _DeleteObject($self->{obj}->{$_});
@@ -2223,9 +2336,9 @@ Win32 GDI graphical printing
 
 =head2 Binary instalation
 
-B<1.> Download binary distribution of the module from I<http://www.wasx.net>.
+B<1.> Download binary PPD package of the module from I<http://www.wasx.net>.
 
-B<2.> Unzip distribution file and copy content to appropriate directories.
+B<2.> Use PPM to install it.
 
 B<3.> Enjoy it ;)
 
@@ -2342,7 +2455,7 @@ filename suggestion and/or PDF document title;
 
 =head3 dialog
 
-If both B<printer> and B<dialog> attributes omitted- systems B<default printer>
+If both B<L</printer>> and B<dialog> attributes omitted- systems B<default printer>
 is used.
 
 Printer dialog settings. You may use the combination of the following flags
@@ -2523,8 +2636,8 @@ Defined paper sizes:
 
 Set this attribute if You want to convert PostScript printer drivers output to
 PDF format. B<WARNING:> This feature needs installed I<Ghostscript> and atleast
-one PostScript printer driver. Use this attribute with B<file> or B<prompt>
-attribute.
+one PostScript printer driver. Use this attribute with B<L</file>> or
+B<L</prompt>> attributes.
 
 Set attribute value to:
 
@@ -2532,23 +2645,24 @@ Set attribute value to:
    1	- redirect Ghostscript messages to log file;
  other	- redirect Ghostscript messages to STDERR;
 
-Used B<file> attribute "-" to generate pdf to STDOUT.
+Use B<L</file>> attribute "-" to generate pdf to STDOUT.
 
 See also L</file>, L</prompt>.
 
 =head3 printer
 
-If both B<printer> and B<dialog> attributes omitted- systems B<default printer>
-is used. Value of attribute is also used for B<dialog> initialisation.
+If both B<printer> and B<L</dialog>> attributes omitted- systems
+B<default printer> is used. Value of attribute is also used for B<L</dialog>>
+initialisation.
 
 Set printer's "friendly" name e.g. "HP LaserJet 8500" or network printer's UNC
 e.g. "\\\\server\\printer" or "//server/printer".
 
 =head3 prompt
 
-If prompt attribute defined- prompts for print output filename and sets B<file>
-attribute. Behaves like B<file> attribute. Also sets B<dialog>'s PRINTTOFILE
-flag.
+If prompt attribute defined- prompts for print output filename and sets
+B<L</file>> attribute. Behaves like B<L</file>> attribute. Also sets
+B<L</dialog>>'s PRINTTOFILE flag.
 
 See also L</file>, L</pdf>.
 
@@ -2603,7 +2717,7 @@ See also L</height>.
 
 The B<Abort> method stops the current print job and erases everything drawn
 since the last call to the B<L</Start>> method. Method returns possibly changed
-file name if B<file> attribute is set.
+file name if B<L</file>> attribute is set.
 
 See also L</Start>, L</Next>, L</End> and L</file>.
 
@@ -2686,7 +2800,7 @@ returned errorcode.
   8  - GDI error;
   16 - Memory allocation error;
 
-See also L</Image>, L</Close>.
+See also L</Image> and L</Close>.
 
 =head2 Bezier
 
@@ -2997,12 +3111,12 @@ See also L</Ellipse>, L</Pie>, L</Arc> and L</ArcTo>.
   $dc->Close([$image_handle_or_path]);
 
 The B<Close> method finishes current print job, closes all open handles and
-frees memory. Method returns possibly changed file name if B<file> attribute is
-set.
+frees memory. Method returns possibly changed file name if B<L</file>> attribute
+is set.
 
 If optional image handle or path is provided-  closes only that image!
 
-See also L</new>, L</Image>, L</EBar> and L</file>.
+See also L</new>, L</Image>, L</MetaEnd>, L</EBar> and L</file>.
 
 =head2 Color
 
@@ -3045,7 +3159,9 @@ See also L</Pie>, L</Chord>, L</Arc> and L</ArcTo>.
   $dc->End();
 
 The B<End> method finishes a current print job. Method returns possibly changed
-file name if B<file> attribute is set.
+file name if B<L</file>> attribute is set.
+
+Not allowed in B<L</Meta>> brackets!
 
 See also L</Start>, L</Next>, L</Abort>, L</Page> and L</file>.
 
@@ -3120,28 +3236,40 @@ See also L</Write>, and L</Color>.
 
 B<or>
 
-  $image_handle = $dc->Image($filename, $x, $y, $width, $height);
-  ($image_handle, $original_width, $original_height) = $dc->Image($filename, $x, $y, $width, $height);
-  $dc->Image($image_handle, $x, $y, $width, $height);
+  $image_handle = $dc->Image($filename, $x, $y, [$width, $height]);
+  ($image_handle, $original_width, $original_height) = $dc->Image($filename, $x, $y, [$width, $height]);
+  $dc->Image($image_handle, $x, $y, [$width, $height]);
+
+B<or>
+
+  ($width, $height) = $dc->Image($image_handle);
 
 The B<Image> method loads an image file into memory and returns a handle
 to it or draws it by it's filename or handle. B<$x, $y> specifies coordinates of
 the image upper-left corner. B<$width, $height> specifies the width and height
-of image on the paper. Once loaded by image path- image is cached in to memory
-and it may be referenced by it's path.
+of image on the paper (default is set by image header). Once loaded by image
+path- image is cached in to memory and it may be referenced by it's path.
 
 In second case if signed integer is given- method assumes it's a handle!
 
 In array context also returns original image width an d height B<$original_width, $original_height>.
 
 Natively it supports B<EMF> and B<WMF> format files.
-B<BMP, CUT, ICO, JPEG, JNG, KOALA, LBM, IFF, MNG, PBM, PBMRAW, PCD, PCX, PGM,
+B<BMP, CUT, DDS, ICO, JPEG, JNG, KOALA, LBM, IFF, MNG, PBM, PBMRAW, PCD, PCX, PGM,
 PGMRAW, PNG, PPM, PPMRAW, PSD, RAS, TARGA, TIFF, WBMP, XBM, XPM> bitmap formats are
 handled via L<FreeImage library|/INSTALLATION>.
+
+Image file formats are recognized by their extensions. On failure- method tries to
+recognize it by file content (bitmaps only).
+
+B<WARNING!> Metafiles may have objects outside the bounding box specified by
+metafile header. These objects will be visible unless you specify clipping
+region (See B<L</PClip>>).
+
 After usage, you should use B<L</Close>> to unload image from memory and destroy
 a handle.
 
-See also L</Close> and L</EBar>.
+See also L</Close>, L</MetaEnd> and L</EBar>.
 
 =head2 Line
 
@@ -3161,6 +3289,40 @@ points in the specified array. The current point is updated.
 
 See also L</Line>.
 
+=head2 Meta
+
+  $filename2 = $dc->Meta([$filename1], [$width, $height]);
+
+The B<Meta> method opens an EMF bracket. This means that everything until
+B<L</MetaEnd>> will be drawn in to the EMF file. Device context is based on
+current Printer object device context, but only default objects and their
+default values are selected into it.
+
+B<$filename2> - name of the EMF file to create (if omited or empty -
+creates only memory EMF file). B<$width, $height> - width and height of the
+EMF file.
+
+Function returns possibly changed filename.
+
+Use "FILE:" or "FILE:C:/suggest.emf" as a file name to invoke 'Save as' dialog.
+
+Function will not overwrite existing files but will change names like
+B<L</file>>, except if set by dialog (this is different from B<L</file>>).
+
+You may not use nested brackets!
+
+See also L</MetaEnd>.
+
+=head2 MetaEnd
+
+  $image_handle = $dc->MetaEnd();
+
+The B<MetaEnd> method closes an EMF bracket and returns handle to a creted EMF
+image. After usage, you should use B<L</Close>> to unload image from memory and
+destroy a handle.
+
+See also L</Meta>, L</Image> and L</Close>.
+
 =head2 Move
 
   $dc->Move($x, $y);
@@ -3179,14 +3341,24 @@ The B<Next> method ends and starts new print job. Equivalent for:
   $dc->Start([$description]);
 
 Default description - "Printer".
+Method returns possibly changed file name if B<L</file>> attribute is set.
 
-See also L</Start>, L</End>, L</Abort> and L</Page>.
+Inside B<L</Meta>> brackets:
+
+  ($image_handle ,$filename2) = $dc->Next(([$filename1], [$width, $height]);
+
+In this context - closes previous and opens new B<L</Meta>> brackets. If
+arguments omited - uses arguments from previous brackets.
+
+See also L</Start>, L</End>, L</Abort>, L</Page>, L</Meta> and L</MetaEnd>.
 
 =head2 Page
 
   $dc->Page();
 
 The B<Page> method starts new page.
+
+Not allowed in B<L</Meta>> brackets!
 
 See also L</Start>, L</Next> and L</End>.
 
@@ -3214,6 +3386,10 @@ combining the new region with any existing clipping region by using the
 specified mode.
 
 Where B<$mode> is one of the following:
+
+  CR_OFF			= 0
+
+Remove clipping region.
 
   CR_AND			= 1
 
@@ -3266,7 +3442,7 @@ See also L</PBegin>, L</PClip>, L</PDraw> and L</PAbort>.
 
 The B<Pen> method creates a logical pen that has the specified style,
 width, and color. The pen can subsequently be used to draw lines and curves.
-Pen width is set in pts regardless of unit attribute in B<L</new>> constructor
+Pen width is set in pts regardless of B<L</unit*>> attribute in B<L</new>> constructor
 or whatever is set by B<L</Unit>> method.
 Using dashed or dotted styles will set the pen width to 1 px!
 If no parameters specified, creates transparent pen.
@@ -3403,6 +3579,8 @@ Default description - "Printer".
 
 B<NOTE!> Print job is automatically aborted if print job is not ended by
 B<L</End>> or B<L</Close>> methods or if an error occurs!
+
+Not allowed in B<L</Meta>> brackets!
 
 See also L</Next>, L</End>, L</Abort> and L</Page>.
 

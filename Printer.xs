@@ -1,7 +1,7 @@
 /*----------------------------------------------------------------------------*\
 | Win32::Printer                                                               |
-| V 0.7.1 (2004-04-11)                                                         |
-| Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            |
+| V 0.8.0 (2004-04-21)                                                         |
+| Copyright (C) 2003-2004 Edgars Binans <admin@wasx.net>                       |
 | http://www.wasx.net                                                          |
 \*----------------------------------------------------------------------------*/
 
@@ -24,7 +24,7 @@
 #include <winspool.h>
 #include <commdlg.h>
 
-LONG exfilt ()
+LONG exfilt()
 {
   return EXCEPTION_EXECUTE_HANDLER;
 }
@@ -33,7 +33,7 @@ MODULE = Win32::Printer         PACKAGE = Win32::Printer
 
 PROTOTYPES: DISABLE
 
-LPTSTR 
+LPTSTR
 _GetLastError()
     PREINIT:
       char msg[255];
@@ -185,31 +185,26 @@ _SaveAs(index, suggest, indir)
       LPCTSTR indir;
     PREINIT:
       OPENFILENAME ofn;
-    CODE:
       char file[MAX_PATH];
-      char filter[] = "Print files (*.prn, *.ps, *.pcl, *.afp) *.prn;*.ps;*.pcl;*.afp PDF files (*.pdf) *.pdf All files (*.*) *.* ";
-      filter[39] = '\0'; filter[62] = '\0'; filter[80] = '\0'; filter[86] = '\0'; filter[102] = '\0'; filter[106] = '\0';
-      file[0] = '\0';
+    CODE:
       ofn.lStructSize = sizeof(OPENFILENAME);
       ofn.hwndOwner = NULL;
-      ofn.lpstrFilter = filter;
+      ofn.lpstrFilter = "Print files (*.prn, *.ps, *.pcl, *.afp)\0*.prn;*.ps;*.pcl;*.afp\0PDF files (*.pdf)\0*.pdf\0Enhenced Metafiles (*.emf)\0*.emf\0All files (*.*)\0*.*\0";
       ofn.lpstrCustomFilter = NULL;
       ofn.nFilterIndex = index;
       strcpy(file, suggest);
       ofn.lpstrFile = file;
       ofn.nMaxFile = MAX_PATH;
       ofn.lpstrFileTitle = NULL;
-      if (!strlen(indir)) {
+      if (indir[0] == '\0') {
          ofn.lpstrInitialDir = PerlEnv_get_childdir();
       } else {
          ofn.lpstrInitialDir = indir;
       }
       ofn.lpstrTitle = "Win32::Printer - Save As";
-      ofn.Flags = OFN_NOCHANGEDIR|OFN_EXPLORER;
-      if (index == 2) {
-         ofn.lpstrDefExt = "pdf";
-      } else {
-         ofn.lpstrDefExt = "prn";
+      ofn.Flags = OFN_NOCHANGEDIR | OFN_EXPLORER | OFN_PATHMUSTEXIST;
+      if (index == 3) {
+        ofn.Flags |= OFN_OVERWRITEPROMPT;
       }
       if (GetSaveFileName(&ofn)) {
          RETVAL = ofn.lpstrFile;
@@ -230,15 +225,12 @@ _Open(index, multi)
       int multi;
     PREINIT:
       OPENFILENAME ofn;
-      char file[65535];
+      char file[MAX_PATH];
     CODE:
       int x = 0;
-      char filter[] = "Print files (*.prn, *.ps, *.pcl, *.afp) *.prn;*.ps;*.pcl;*.afp PDF files (*.pdf) *.pdf All files (*.*) *.* ";
-      filter[39] = '\0'; filter[62] = '\0'; filter[80] = '\0'; filter[86] = '\0'; filter[102] = '\0'; filter[106] = '\0';
-      file[0] = '\0';
       ofn.lStructSize = sizeof(OPENFILENAME);
       ofn.hwndOwner = NULL;
-      ofn.lpstrFilter = filter;
+      ofn.lpstrFilter = "Print files (*.prn, *.ps, *.pcl, *.afp)\0*.prn;*.ps;*.pcl;*.afp\0PDF files (*.pdf)\0*.pdf\0Enhenced Metafiles (*.emf)\0*.emf\0All files (*.*)\0*.*\0";
       ofn.lpstrCustomFilter = NULL;
       ofn.nFilterIndex = index;
       file[0] = '\0';
@@ -247,7 +239,7 @@ _Open(index, multi)
       ofn.lpstrFileTitle = NULL;
       ofn.lpstrInitialDir = NULL;
       ofn.lpstrTitle = "Win32::Printer - Open";
-      ofn.Flags = OFN_NOCHANGEDIR|OFN_EXPLORER;
+      ofn.Flags = OFN_NOCHANGEDIR | OFN_EXPLORER | OFN_HIDEREADONLY;
       if (multi == 1) {
          ofn.Flags |= OFN_ALLOWMULTISELECT;
       }
@@ -290,9 +282,6 @@ _StartDoc(hdc, DocName, FileName)
     PREINIT:
       DOCINFO di;
     CODE:
-      if (FileName == "") {
-         FileName = NULL;
-      }
       di.cbSize = sizeof(DOCINFO);
       di.lpszDocName = DocName;
       di.lpszOutput = FileName;
@@ -795,6 +784,14 @@ _SelectClipPath(hdc, iMode)
     OUTPUT:
       RETVAL
 
+int
+_DeleteClipPath(hdc)
+      HDC hdc;
+    CODE:
+      RETVAL = SelectClipRgn(hdc, NULL);
+    OUTPUT:
+      RETVAL
+
 HENHMETAFILE
 _GetWinMetaFile(hdc, lpszMetaFile)
       HDC hdc;
@@ -931,29 +928,35 @@ _LoadBitmap(hdc, BmpFile, Type);
 #ifdef FREE
       SetCurrentDirectory(dir);
       __try {
-         if (Type == -1) {
-            Image = FreeImage_Load(FreeImage_GetFileType(BmpFile, 16), BmpFile, 0);
-         } else {
+         if (Type == FIF_UNKNOWN) {
+            Type = FreeImage_GetFIFFromFilename(BmpFile);
+            if (Type == FIF_UNKNOWN) {
+              Type = FreeImage_GetFileType(BmpFile, 16);
+            }
+         }
+         if ((Type != FIF_UNKNOWN) && FreeImage_FIFSupportsReading(Type)) {
             Image = FreeImage_Load(Type, BmpFile, 0);
+            if (Image) {
+               lpbmi = (BITMAPINFO *) FreeImage_GetInfo(Image);
+               hdc = CreateEnhMetaFile(hdc, (LPCTSTR) NULL, NULL, (LPCTSTR) NULL);
+               if (lpbmi->bmiHeader.biXPelsPerMeter && lpbmi->bmiHeader.biYPelsPerMeter) {
+                  resolutionX = lpbmi->bmiHeader.biXPelsPerMeter / 39.35483881;
+                  resolutionY = lpbmi->bmiHeader.biYPelsPerMeter / 39.35483881;
+               }
+               StretchDIBits(hdc, 0, 0, (int)(GetDeviceCaps(hdc, LOGPIXELSX) * lpbmi->bmiHeader.biWidth / resolutionX), (int)(GetDeviceCaps(hdc, LOGPIXELSY) * lpbmi->bmiHeader.biHeight / resolutionY), 0, 0, lpbmi->bmiHeader.biWidth, lpbmi->bmiHeader.biHeight, (CONST VOID *) FreeImage_GetBits(Image), lpbmi, DIB_RGB_COLORS, SRCCOPY);
+               RETVAL = CloseEnhMetaFile(hdc);
+               FreeImage_Unload(Image);
+            } else {
+               if (!GetLastError()) {
+                  SetLastError(ERROR_INVALID_DATA);
+               }
+            }
+         } else {
+            Image = 0;
          }
       }
       __except (exfilt()) {
          Image = 0;
-      }
-      if (Image) {
-         lpbmi = (BITMAPINFO *) FreeImage_GetInfo(Image);
-         hdc = CreateEnhMetaFile(hdc, (LPCTSTR) NULL, NULL, (LPCTSTR) NULL);
-         if (lpbmi->bmiHeader.biXPelsPerMeter && lpbmi->bmiHeader.biYPelsPerMeter) {
-            resolutionX = lpbmi->bmiHeader.biXPelsPerMeter / 39.35483881;
-            resolutionY = lpbmi->bmiHeader.biYPelsPerMeter / 39.35483881;
-         }
-         StretchDIBits(hdc, 0, 0, (int)(GetDeviceCaps(hdc, LOGPIXELSX) * lpbmi->bmiHeader.biWidth / resolutionX), (int)(GetDeviceCaps(hdc, LOGPIXELSY) * lpbmi->bmiHeader.biHeight / resolutionY), 0, 0, lpbmi->bmiHeader.biWidth, lpbmi->bmiHeader.biHeight, (CONST VOID *) FreeImage_GetBits(Image), lpbmi, DIB_RGB_COLORS, SRCCOPY);
-         RETVAL = CloseEnhMetaFile(hdc);
-         FreeImage_Unload(Image);
-      } else {
-         if (!GetLastError()) {
-            SetLastError(ERROR_INVALID_DATA);
-         }
       }
 #else
       croak("FreeImage is not supported in this build!");
@@ -1004,30 +1007,25 @@ _DeleteEnhMetaFile(hemf)
     OUTPUT:
       RETVAL
 
-LPTSTR 
+SV*
 _EnumPrinters(Flags, Server)
       int Flags;
       LPTSTR Server;
     PREINIT:
       int rc;
       LPBYTE buffer;
-      LPBYTE outbuf;
-      LPBYTE tmpbuf;
-      unsigned int bytes;
       DWORD needed, returned;
       PRINTER_INFO_2 *pri2;
       unsigned int i;
     CODE:
-      if (Server == "") { Server = NULL; }
+      SV* retval = newSVpvn("", 0);
       EnumPrinters(Flags, Server, 2, NULL, 0, &needed, &returned);
       New(0, buffer, needed, BYTE);
-      New(0, outbuf, needed, BYTE);
-      tmpbuf = outbuf;
       rc = EnumPrinters(Flags, Server, 2, buffer, needed, &needed, &returned);
       pri2 = (PRINTER_INFO_2 *) buffer;
       if ((rc) && (returned)) {
          for (i = 0; i < returned; i++) {
-            bytes = sprintf(tmpbuf, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t\n",
+               sv_catpvf(retval, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t\n",
                pri2[i].pServerName,
                pri2[i].pPrinterName,
                pri2[i].pShareName,
@@ -1048,38 +1046,28 @@ _EnumPrinters(Flags, Server)
                pri2[i].cJobs,
                pri2[i].AveragePPM
             );
-            tmpbuf += bytes;
          }
-         RETVAL = outbuf;
-      } else {
-         if ((rc) && (!returned)) { RETVAL = ""; } else { RETVAL = NULL; }
       }
-      Safefree(outbuf);
       Safefree(buffer);
+      RETVAL = retval;
     OUTPUT:
       RETVAL
 
-LPTSTR 
+SV*
 _EnumPrinterDrivers(Server, Env)
       LPTSTR Server;
       LPTSTR Env;
     PREINIT:
       int rc;
       LPBYTE buffer;
-      LPBYTE outbuf;
-      LPBYTE tmpbuf;
-      unsigned int bytes;
       DWORD needed, returned;
       DRIVER_INFO_3 *dri3;
       unsigned int i;
       unsigned int x = 0;
     CODE:
-      if (Server == "") { Server = NULL; }
-      if (Env == "") { Env = NULL; }
+      SV* retval = newSVpvn("", 0);
       EnumPrinterDrivers(Server, Env, 3, NULL, 0, &needed, &returned);
       New(0, buffer, needed, BYTE);
-      New(0, outbuf, needed, BYTE);
-      tmpbuf = outbuf;
       rc = EnumPrinterDrivers(Server, Env, 3, buffer, needed, &needed, &returned);
       dri3 = (DRIVER_INFO_3 *) buffer;
       if ((rc) && (returned)) {
@@ -1094,7 +1082,7 @@ _EnumPrinterDrivers(Server, Env)
                   x++;
                }
             }
-            bytes = sprintf(tmpbuf, "%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+            sv_catpvf(retval, "%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
                dri3[i].cVersion,
                dri3[i].pName,
                dri3[i].pEnvironment,
@@ -1106,166 +1094,125 @@ _EnumPrinterDrivers(Server, Env)
                dri3[i].pMonitorName,
                dri3[i].pDefaultDataType
             );
-            tmpbuf += bytes;
          }
-         RETVAL = outbuf;
-      } else {
-         if ((rc) && (!returned)) { RETVAL = ""; } else { RETVAL = NULL; }
       }
-      Safefree(outbuf);
       Safefree(buffer);
+      RETVAL = retval;
     OUTPUT:
       RETVAL
 
-LPTSTR 
+SV*
 _EnumPorts(Server)
       LPTSTR Server;
     PREINIT:
       int rc;
       LPBYTE buffer;
-      LPBYTE outbuf;
-      LPBYTE tmpbuf;
-      unsigned int bytes;
       DWORD needed, returned;
       PORT_INFO_2 *pi2;
       unsigned int i;
     CODE:
-      if (Server == "") { Server = NULL; }
+      SV* retval = newSVpvn("", 0);
       EnumPorts(Server, 2, NULL, 0, &needed, &returned);
       New(0, buffer, needed, BYTE);
-      New(0, outbuf, needed, BYTE);
-      tmpbuf = outbuf;
       rc = EnumPorts(Server, 2, buffer, needed, &needed, &returned);
       pi2 = (PORT_INFO_2 *) buffer;
       if ((rc) && (returned)) {
          for (i = 0; i < returned; i++) {
-            bytes = sprintf(tmpbuf, "%s\t%s\t%s\t%d\n", 
+            sv_catpvf(retval, "%s\t%s\t%s\t%d\n", 
                pi2[i].pPortName,
                pi2[i].pMonitorName,
                pi2[i].pDescription,
                pi2[i].fPortType
             );
-            tmpbuf += bytes;
          }
-         RETVAL = outbuf;
-      } else {
-         if ((rc) && (!returned)) { RETVAL = ""; } else { RETVAL = NULL; }
       }
-      Safefree(outbuf);
       Safefree(buffer);
+      RETVAL = retval;
     OUTPUT:
       RETVAL
 
-LPTSTR 
+SV*
 _EnumMonitors(Server)
       LPTSTR Server;
     PREINIT:
       int rc;
       LPBYTE buffer;
-      LPBYTE outbuf;
-      LPBYTE tmpbuf;
-      unsigned int bytes;
       DWORD needed, returned;
       MONITOR_INFO_2 *mi2;
       unsigned int i;
     CODE:
-      if (Server == "") { Server = NULL; }
+      SV* retval = newSVpvn("", 0);
       EnumMonitors(Server, 2, NULL, 0, &needed, &returned);
       New(0, buffer, needed, BYTE);
-      New(0, outbuf, needed, BYTE);
-      tmpbuf = outbuf;
       rc = EnumMonitors(Server, 2, buffer, needed, &needed, &returned);
       mi2 = (MONITOR_INFO_2 *) buffer;
       if ((rc) && (returned)) {
          for (i = 0; i < returned; i++) {
-            bytes = sprintf(tmpbuf, "%s\t%s\t%s\n",
+            sv_catpvf(retval, "%s\t%s\t%s\n",
                mi2[i].pName,
                mi2[i].pEnvironment,
                mi2[i].pDLLName
             );
-            tmpbuf += bytes;
          }
-         RETVAL = outbuf;
-      } else {
-         if ((rc) && (!returned)) { RETVAL = ""; } else { RETVAL = NULL; }
       }
-      Safefree(outbuf);
       Safefree(buffer);
+      RETVAL = retval;
     OUTPUT:
       RETVAL
 
-LPTSTR 
+SV*
 _EnumPrintProcessors(Server, Env)
       LPTSTR Server;
       LPTSTR Env;
     PREINIT:
       int rc;
       LPBYTE buffer;
-      LPBYTE outbuf;
-      LPBYTE tmpbuf;
-      unsigned int bytes;
       DWORD needed, returned;
       PRINTPROCESSOR_INFO_1 *ppi1;
       unsigned int i;
     CODE:
-      if (Server == "") { Server = NULL; }
-      if (Env == "") { Env = NULL; }
+      SV* retval = newSVpvn("", 0);
       EnumPrintProcessors(Server, Env, 1, NULL, 0, &needed, &returned);
       New(0, buffer, needed, BYTE);
-      New(0, outbuf, needed, BYTE);
-      tmpbuf = outbuf;
       rc = EnumPrintProcessors(Server, Env, 1, buffer, needed, &needed, &returned);
       ppi1 = (PRINTPROCESSOR_INFO_1 *)buffer;
       if ((rc) && (returned)) {
          for (i = 0; i < returned; i++) {
-            bytes = sprintf(tmpbuf, "%s\n", ppi1[i].pName);
-            tmpbuf += bytes;
+            sv_catpvf(retval, "%s\n", ppi1[i].pName);
          }
-         RETVAL = outbuf;
-      } else {
-         if ((rc) && (!returned)) { RETVAL = ""; } else { RETVAL = NULL; }
       }
-      Safefree(outbuf);
       Safefree(buffer);
+      RETVAL = retval;
     OUTPUT:
       RETVAL
 
-LPTSTR 
+SV*
 _EnumPrintProcessorDatatypes(Server, Processor)
       LPTSTR Server;
       LPTSTR Processor;
     PREINIT:
       int rc;
       LPBYTE buffer;
-      LPBYTE outbuf;
-      LPBYTE tmpbuf;
-      unsigned int bytes;
       DWORD needed, returned;
       DATATYPES_INFO_1 *dti1;
       unsigned int i;
     CODE:
-      if (Server == "") { Server = NULL; }
+      SV* retval = newSVpvn("", 0);
       EnumPrintProcessorDatatypes(Server, Processor, 1, NULL, 0, &needed, &returned);
       New(0, buffer, needed, BYTE);
-      New(0, outbuf, needed, BYTE);
-      tmpbuf = outbuf;
       rc = EnumPrintProcessorDatatypes(Server, Processor, 1, buffer, needed, &needed, &returned);
       dti1 = (DATATYPES_INFO_1 *)buffer;
       if ((rc) && (returned)) {
          for (i = 0; i < returned; i++) {
-            bytes = sprintf(tmpbuf, "%s\n", dti1[i].pName);
-            tmpbuf += bytes;
+            sv_catpvf(retval, "%s\n", dti1[i].pName);
          }
-         RETVAL = outbuf;
-      } else {
-         if ((rc) && (!returned)) { RETVAL = ""; } else { RETVAL = NULL; }
       }
-      Safefree(outbuf);
       Safefree(buffer);
+      RETVAL = retval;
     OUTPUT:
       RETVAL
 
-LPTSTR 
+SV*
 _EnumJobs(EnPrinter, begin, end)
       LPTSTR EnPrinter;
       int begin;
@@ -1274,24 +1221,19 @@ _EnumJobs(EnPrinter, begin, end)
       HANDLE hPrinter;
       int rc;
       LPBYTE buffer;
-      LPBYTE outbuf;
-      LPBYTE tmpbuf;
-      unsigned int bytes;
       DWORD needed, returned;
       JOB_INFO_2 *ji2;
       unsigned int i;
     CODE:
-       RETVAL = NULL;
+      SV* retval = newSVpvn("", 0);
       if (OpenPrinter(EnPrinter, &hPrinter, NULL)) {
          EnumJobs(hPrinter, begin, end, 2, NULL, 0, &needed, &returned);
          New(0, buffer, needed, BYTE);
-         New(0, outbuf, needed, BYTE);
-         tmpbuf = outbuf;
          rc = EnumJobs(hPrinter, begin, end, 2, buffer, needed, &needed, &returned);
          ji2 = (JOB_INFO_2 *)buffer;
          if ((rc) && (returned)) {
             for (i = 0; i < returned; i++) {
-               bytes = sprintf(tmpbuf, "%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+               sv_catpvf(retval, "%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
                   ji2[i].JobId,
                   ji2[i].pPrinterName,
                   ji2[i].pMachineName,
@@ -1312,15 +1254,11 @@ _EnumJobs(EnPrinter, begin, end)
                   ji2[i].Size,
                   ji2[i].PagesPrinted
                );
-               tmpbuf += bytes;
             }
-            RETVAL = outbuf;
-         } else {
-            if ((rc) && (!returned)) { RETVAL = ""; } else { RETVAL = NULL; }
          }
-         Safefree(outbuf);
          Safefree(buffer);
       }
+      RETVAL = retval;
     OUTPUT:
       RETVAL
 
@@ -1362,5 +1300,36 @@ _GhostPDF(ps, pdf)
 #else
       croak("Ghostscript is not supported in this build!");
 #endif
+    OUTPUT:
+      RETVAL
+
+HDC
+_CreateMeta(hdc, file, right, bottom)
+      HDC hdc;
+      LPCTSTR file;
+      LONG right;
+      LONG bottom;
+    PREINIT:
+      RECT rect;
+    CODE:
+      if (file[0] == '\0') { file = NULL; }
+      if (right | bottom) {
+        rect.left = 0;
+        rect.top = 0;
+        rect.right = right;
+        rect.bottom = bottom;
+        RETVAL = CreateEnhMetaFile(hdc, file, &rect, NULL);
+      } else {
+        RETVAL = CreateEnhMetaFile(hdc, file, NULL, NULL);
+      }
+      SetGraphicsMode(RETVAL, GM_ADVANCED);
+    OUTPUT:
+      RETVAL
+
+HENHMETAFILE
+_CloseMeta(edc)
+      HDC edc;
+    CODE:
+      RETVAL = CloseEnhMetaFile(edc);
     OUTPUT:
       RETVAL

@@ -1,30 +1,30 @@
 #------------------------------------------------------------------------------#
-# Win32::Printer & Win32::Printer (NATIVE) test script                         #
+# Win32::Printer & Win32::Printer (NATIVE emf) test script                     #
 # Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            #
 #------------------------------------------------------------------------------#
 
-use Test::Simple tests => 47;
+use Test::Simple tests => 39;
 
 use strict;
 use warnings;
 
 use Win32::Printer;
-use Win32::Printer::Enum;
-use Win32::Printer::Enum qw( Drivers Ports Monitors Processors Types Jobs );
 
 #------------------------------------------------------------------------------#
 
-my $dc = new Win32::Printer( file => "t/tmp/test.prn" );
+my $dc = new Win32::Printer( dc => 1 );
 
 ok ( defined($dc), 'new()' );
+
+ok ( defined($dc->Meta()), 'Meta()' );
 
 ok ( defined($dc->Debug(0)), 'Debug()' );
 
 ok ( defined($dc->Caps(DRIVERVERSION)), 'Caps()' );
 ok ( $dc->Unit('in') == 1, 'Unit()' );
 
-ok ( defined($dc->Abort()), 'Abort()' );
-ok ( $dc->Start("Test 1") == 1, 'Start()' );
+#ok ( defined($dc->Abort()), 'Abort()' );
+#ok ( $dc->Start("Test 1") == 1, 'Start()' );
 
 ok ( $dc->Brush(0, 128, 0) == 1, 'Brush()' );
 ok ( $dc->Fill(ALTERNATE) == 1,  'Fill()' );
@@ -38,6 +38,8 @@ my $fontref = $dc->Font('Arial Bold Italic Underline Strike', 20, 5);
 ok ( $fontref != 0, 'Font() set');
 ok ( $dc->Font($fontref) == $fontref, 'Font() select');
 ok ( $dc->Color(128, 128, 128) == 1, 'Color()' );
+
+ok ( defined($dc->Next()), 'Next()' );
 
 ok ( $dc->Write("This is test again!", 3, 3.5, RIGHT) == 1, 'Write() string' );
 ok ( $dc->Write("... and again!", 2, 2, JUSTIFY, 5) == 1, 'Write() justify' );
@@ -58,7 +60,7 @@ ok ( $dc->BezierTo(8, 6, 6, 6, 9, 5) == 1, 'BezierTo()' );
 ok ( $dc->Poly(1, 1, 2, 2, 2, 1, 4, 8) == 1, 'Poly()' );
 ok ( $dc->Rect(6, .5, 3, 2, .5) == 1, 'Rect()' );
 
-ok ( $dc->Page() == 1, 'Page()' );
+#ok ( $dc->Page() == 1, 'Page()' );
 
 ok ( $dc->PBegin() == 1, 'PBegin()' );
 $dc->Ellipse(1, 6, 6, 2);
@@ -74,22 +76,14 @@ ok ( $dc->PDraw() == 1, 'PDraw()' );
 $dc->PBegin();
 ok ( $dc->PAbort() == 1, 'PAbort()' );
 
-ok ( defined($dc->Next("Test 2")), 'Next()' );
-ok ( defined($dc->End()), 'End()' );
+#ok ( defined($dc->Next("Test 2")), 'Next()' );
+#ok ( defined($dc->End()), 'End()' );
+
+my $emf;
+ok ( defined($emf = $dc->MetaEnd()), 'MetaEnd()' );
+
+ok ( defined($dc->Close($emf)), 'Close() emf' );
 
 ok ( defined($dc->Close()), 'Close()' );
 
 #------------------------------------------------------------------------------#
-
-ok ( defined(Printers()), 'Printers()');
-ok ( defined(Drivers()), 'Drivers()');
-ok ( defined(Ports()), 'Ports()');
-ok ( defined(Monitors()), 'Monitors()');
-ok ( defined(Processors()), 'Processors()');
-ok ( defined(Types()), 'Types()');
-my @printer = Printers();
-ok ( defined(Jobs($printer[0]{PrinterName}, 0, 1)), 'Jobs()');
-
-#------------------------------------------------------------------------------#
-
-unlink <t/tmp/*.*>;

@@ -21,7 +21,7 @@ my $dc = new Win32::Printer( file => "t/tmp/test.pdf", pdf => 0 );
 
 ok ( defined($dc->Abort()), 'Abort()' );
 ok ( $dc->Start("Test 1") == 1, 'Start()' );
-ok ( $dc->Next("Test 2") == 1, 'Next()' );
+ok ( defined($dc->Next("Test 2")) == 1, 'Next()' );
 ok ( defined($dc->End()), 'End()' );
 ok ( defined($dc->Close()), 'Close()' );
 
