@@ -1,3 +1,15 @@
+3PLibs/EBar/_version.txt
+3PLibs/EBar/EBar.h
+3PLibs/EBar/EBar.lib
+3PLibs/FreeImage/_version.txt
+3PLibs/FreeImage/FreeImage.h
+3PLibs/FreeImage/FreeImage.lib
+3PLibs/FreeImage/licence.txt
+3PLibs/Ghostscript/_version.txt
+3PLibs/Ghostscript/iapi.h
+3PLibs/Ghostscript/gsdll32.lib
+3PLibs/Ghostscript/licence.html
+Lesser.txt
 Makefile.PL
 MANIFEST
 Printer/Enum.pm
@@ -6,6 +18,7 @@ Printer.xs
 t/1.t
 t/2.t
 t/3.t
+t/4.t
 t/t.emf
 t/t.png
 t/t.wmf

@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------#
 # Win32::Printer                                                               #
-# V 0.6.6.1 (2003-11-03)                                                       #
+# V 0.7.0 (2004-01-07)                                                         #
 # Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            #
 # http://www.wasx.net                                                          #
 #------------------------------------------------------------------------------#
@@ -15,13 +15,17 @@ use Carp;
 
 require Exporter;
 
-use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD %params @pdfend);
+use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD %params @pdfend $debuglevel $numcroaked );
 
-$VERSION = '0.6.6.1';
+$VERSION = '0.7.0';
 
 @ISA = qw( Exporter );
 
 @EXPORT = qw(
+
+	EB_25MATRIX EB_25INT EB_25IND EB_25IATA EB_27 EB_39 EB_39EX EB_39DUMB
+	EB_93 EB_128X EB_128A EB_128B EB_128C EB_128S EB_128EAN EB_EAN13 EB_UPCA
+	EB_EAN8 EB_UPCE EB_ISBN EB_ISBN2 EB_ISSN EB_AD2 EB_AD5 EB_CHK EB_TXT
 
 	LETTER LETTERSMALL TABLOID LEDGER LEGAL STATEMENT EXECUTIVE A3 A4
 	A4SMALL A5 B4 B5 FOLIO QUARTO IN_10X14 IN_11X17 NOTE ENV_9 ENV_10
@@ -36,9 +40,8 @@ $VERSION = '0.6.6.1';
 
 	PORTRAIT LANDSCAPE VERTICAL HORIZONTAL
 
-	ALLPAGES SELECTION PAGENUMS NOSELECTION NOPAGENUMS COLLATE PRINTTOFILE
-	PRINTSETUP NOWARNING USEDEVMODECOPIES USEDEVMODECOPIESANDCOLLATE
-	DISABLEPRINTTOFILE HIDEPRINTTOFILE NONETWORKBUTTON
+	ALLPAGES SELECTION PAGENUMS NOSELECTION NOPAGENUMS PRINTTOFILE
+	PRINTSETUP NOWARNING DISABLEPRINTTOFILE HIDEPRINTTOFILE NONETWORKBUTTON
 
 	NOUPDATECP TOP LEFT UPDATECP RIGHT VCENTER BOTTOM WORDBREAK BASELINE
 	SINGLELINE EXPANDTABS NOCLIP EXTERNALLEADING CALCRECT NOPREFIX INTERNAL
@@ -66,11 +69,11 @@ $VERSION = '0.6.6.1';
 	MONOCHROME COLOR
 
 	DRIVERVERSION HORZSIZE VERTSIZE HORZRES VERTRES BITSPIXEL PLANES
-	NUMBRUSHES NUMPENS NUMMARKERS NUMFONTS NUMCOLORS PDEVICESIZE CURVECAPS
-	LINECAPS POLYGONALCAPS TEXTCAPS CLIPCAPS RASTERCAPS ASPECTX ASPECTY
-	ASPECTXY LOGPIXELSX LOGPIXELSY SIZEPALETTE NUMRESERVED COLORRES
-	PHYSICALWIDTH PHYSICALHEIGHT PHYSICALOFFSETX PHYSICALOFFSETY
-	SCALINGFACTORX SCALINGFACTORY
+	NUMBRUSHES NUMPENS NUMFONTS NUMCOLORS CURVECAPS LINECAPS POLYGONALCAPS
+	TEXTCAPS CLIPCAPS RASTERCAPS ASPECTX ASPECTY ASPECTXY LOGPIXELSX
+	LOGPIXELSY SIZEPALETTE NUMRESERVED COLORRES PHYSICALWIDTH
+	PHYSICALHEIGHT PHYSICALOFFSETX PHYSICALOFFSETY SCALINGFACTORX
+	SCALINGFACTORY
 
       );
 
@@ -81,42 +84,92 @@ XSLoader::load('Win32::Printer', $VERSION);
 
 #------------------------------------------------------------------------------#
 
+sub _carp {
+  if (!defined($debuglevel)) { $debuglevel = 0; }
+  my $arg = shift;
+  if ($debuglevel == 1) {
+    croak $arg, "(Died on warning!)";
+  } else {
+    carp $arg;
+  }
+}
+
+sub _croak {
+  if (!defined($debuglevel)) { $debuglevel = 0; }
+  my $arg = shift;
+  if ($debuglevel == 2) {
+    carp $arg, "(Warned on error!)";
+  } else {
+    croak $arg;
+  }
+}
+
+#------------------------------------------------------------------------------#
+
 sub AUTOLOAD {
 
   my $constname = $AUTOLOAD;
   $constname =~ s/.*:://;
 
-  croak "Unknown Win32::Printer macro $constname.\n";
+  _croak "Unknown Win32::Printer macro $constname.\n";
+  return undef;
 
 }
 
 #------------------------------------------------------------------------------#
 
+sub EB_25MATRIX			{ 0x00000001; }
+sub EB_25INT			{ 0x00000002; }
+sub EB_25IND			{ 0x00000004; }
+sub EB_25IATA			{ 0x00000008; }
+sub EB_27			{ 0x00000010; }
+sub EB_39			{ 0x00000020; }
+sub EB_39EX			{ 0x00000040; }
+sub EB_39DUMB			{ 0x00000080; }
+sub EB_93			{ 0x00000100; }
+sub EB_128X			{ 0x00000200; }
+sub EB_128A			{ 0x00000400; }
+sub EB_128B			{ 0x00000800; }
+sub EB_128C			{ 0x00001000; }
+sub EB_128S			{ 0x00002000; }
+sub EB_128EAN			{ 0x00004000; }
+sub EB_EAN13			{ 0x00008000; }
+sub EB_UPCA			{ 0x00010000; }
+sub EB_EAN8			{ 0x00020000; }
+sub EB_UPCE			{ 0x00040000; }
+sub EB_ISBN			{ 0x00080000; }
+sub EB_ISBN2			{ 0x00100000; }
+sub EB_ISSN			{ 0x00200000; }
+sub EB_AD2			{ 0x00400000; }
+sub EB_AD5			{ 0x00800000; }
+sub EB_CHK			{ 0x01000000; }
+sub EB_TXT			{ 0x02000000; }
+
 # Print dialog
-sub ALLPAGES			{ 0x000000; }
-sub SELECTION			{ 0x000001; }
-sub PAGENUMS			{ 0x000002; }
-sub NOSELECTION			{ 0x000004; }
-sub NOPAGENUMS			{ 0x000008; }
-sub COLLATE			{ 0x000010; }
-sub PRINTTOFILE			{ 0x000020; }
-sub PRINTSETUP			{ 0x000040; }
-sub NOWARNING			{ 0x000080; }
-sub RETURNDC			{ 0x000100; }
-sub RETURNIC			{ 0x000200; }
-sub RETURNDEFAULT		{ 0x000400; }
-sub SHOWHELP			{ 0x000800; }
-sub ENABLEPRINTHOOK		{ 0x001000; }
-sub ENABLESETUPHOOK		{ 0x002000; }
-sub ENABLEPRINTTEMPLATE		{ 0x004000; }
-sub ENABLESETUPTEMPLATE		{ 0x008000; }
-sub ENABLEPRINTTEMPLATEHANDLE	{ 0x010000; }
-sub ENABLESETUPTEMPLATEHANDLE	{ 0x020000; }
-sub USEDEVMODECOPIES		{ 0x040000; }
-sub USEDEVMODECOPIESANDCOLLATE	{ 0x040000; }
-sub DISABLEPRINTTOFILE		{ 0x080000; }
-sub HIDEPRINTTOFILE		{ 0x100000; }
-sub NONETWORKBUTTON		{ 0x200000; }
+sub ALLPAGES			{ 0x00000000; }
+sub SELECTION			{ 0x00000001; }
+sub PAGENUMS			{ 0x00000002; }
+sub NOSELECTION			{ 0x00000004; }
+sub NOPAGENUMS			{ 0x00000008; }
+sub COLLATE			{ 0x00000010; }
+sub PRINTTOFILE			{ 0x00000020; }
+sub PRINTSETUP			{ 0x00000040; }
+sub NOWARNING			{ 0x00000080; }
+sub RETURNDC			{ 0x00000100; }
+sub RETURNIC			{ 0x00000200; }
+sub RETURNDEFAULT		{ 0x00000400; }
+sub SHOWHELP			{ 0x00000800; }
+sub ENABLEPRINTHOOK		{ 0x00001000; }
+sub ENABLESETUPHOOK		{ 0x00002000; }
+sub ENABLEPRINTTEMPLATE		{ 0x00004000; }
+sub ENABLESETUPTEMPLATE		{ 0x00008000; }
+sub ENABLEPRINTTEMPLATEHANDLE	{ 0x00010000; }
+sub ENABLESETUPTEMPLATEHANDLE	{ 0x00020000; }
+sub USEDEVMODECOPIES		{ 0x00040000; }
+sub USEDEVMODECOPIESANDCOLLATE	{ 0x00040000; }
+sub DISABLEPRINTTOFILE		{ 0x00080000; }
+sub HIDEPRINTTOFILE		{ 0x00100000; }
+sub NONETWORKBUTTON		{ 0x00200000; }
 
 # Paper source bin
 sub BIN_ONLYONE			{ 1; }
@@ -430,6 +483,9 @@ sub FIF_TIFF			{ 18; }
 sub FIF_WBMP			{ 19; }
 sub FIF_PSD			{ 20; }
 sub FIF_CUT			{ 21; }
+sub FIF_XBM			{ 22; }
+sub FIF_XPM			{ 23; }
+
 
 #------------------------------------------------------------------------------#
 
@@ -441,9 +497,11 @@ sub new {
 
   bless $self, $class;
 
-  $self->_init(@_);
-
-  return $self;
+  if ($self->_init(@_)) {
+    return $self;
+  } else {
+    return undef;
+  }
 
 }
 
@@ -455,58 +513,152 @@ sub _init {
 
   (%params) = @_;
 
+  $numcroaked = 0;
+
+  if ((!_num($params{'debug'})) or ($params{'debug'} > 2)) {
+    $debuglevel = 0;
+  } else {
+    $debuglevel = $params{'debug'};
+  }
+
   for (keys %params) {
-    if ($_ !~ /dc|printer|dialog|file|pdf|copies|collate|minp|maxp|orientation|papersize|duplex|description|unit|source|color/) {
-      carp qq^WARNING: Unknown attribute "$_"!\n^;
+    if ($_ !~ /debug|dc|printer|dialog|file|pdf|prompt|copies|collate|minp|maxp|orientation|papersize|duplex|description|unit|source|color|height|width/) {
+      _carp qq^WARNING: Unknown attribute "$_"!\n^;
     }
   }
 
   my $dialog;
-  if (defined($params{'dialog'})) {
+  if (_num($params{'dialog'})) {
     $dialog = 1;
   } else {
     $dialog = 0;
     $params{'dialog'} = 0;
   }
 
-  if ((defined($params{'pdf'})) and (!defined($params{'file'}))) {
-      delete $params{'pdf'};
-      carp qq^WARNING: pdf attribute used without file attribute - IGNORED!\n^;
+  if (defined($params{'file'})) {
+    $params{'file'} =~ s/\//\\/g;
+    my $file = $params{'file'};
+    $file =~ s/(.*\\)//g;
+    my $dir = $1;
+    unless ($dir) { $dir = '.\\'; }
+    if (($file =~ /[\"\*\/\:\<\>\?\\\|]|[\x00-\x1f]/) or (!(-d $dir))) {
+      _croak "ERROR: Cannot create printer object! Invalid filename\n";
+      return undef;
+    }
   }
 
-  if (!defined $params{'printer'})	{ $params{'printer'}	 = ""; }
-  if (!_num($params{'copies'}))		{ $params{'copies'}	 = 1;  }
-  if (!_num($params{'collate'}))	{ $params{'collate'}	 = 1;  }
-  if (!_num($params{'minp'}))		{ $params{'minp'}	 = 0;  }
-  if (!_num($params{'maxp'}))		{ $params{'maxp'}	 = 0;  }
-  if (!_num($params{'orientation'}))	{ $params{'orientation'} = 0;  }
-  if (!_num($params{'papersize'}))	{ $params{'papersize'}	 = 0;  }
-  if (!_num($params{'duplex'}))		{ $params{'duplex'}	 = 0;  }
-  if (!_num($params{'source'}))		{ $params{'source'}	 = 7;  }
-  if (!_num($params{'color'}))		{ $params{'color'}	 = 2;  }
+  unless (defined $params{'printer'})	{ $params{'printer'}	 = ""; } else { $params{'printer'} =~ s/\//\\/g; }
+  unless (_num($params{'copies'}))	{ $params{'copies'}	 = 1;  }
+  unless (_num($params{'collate'}))	{ $params{'collate'}	 = 1;  }
+  unless (_num($params{'minp'}))	{ $params{'minp'}	 = 0;  }
+  unless (_num($params{'maxp'}))	{ $params{'maxp'}	 = 0;  }
+  unless (_num($params{'orientation'}))	{ $params{'orientation'} = 0;  }
+  unless (_num($params{'papersize'}))	{ $params{'papersize'}	 = 0;  }
+  unless (_num($params{'duplex'}))	{ $params{'duplex'}	 = 0;  }
+  unless (_num($params{'source'}))	{ $params{'source'}	 = 7;  }
+  unless (_num($params{'color'}))	{ $params{'color'}	 = 2;  }
+  unless (_num($params{'height'}))	{ $params{'height'}	 = 0;  }
+  unless (_num($params{'width'}))	{ $params{'width'}	 = 0;  }
 
-  $self->{dc} = _CreatePrinter($params{'printer'}, $dialog, $params{'dialog'}, $params{'copies'}, $params{'collate'}, $params{'minp'}, $params{'maxp'}, $params{'orientation'}, $params{'papersize'}, $params{'duplex'}, $params{'source'}, $params{'color'});
+  return undef if $numcroaked;
+
+  if (($params{'width'}) and (!$params{'height'})) {
+    $params{'width'} = 0;
+    _carp qq^WARNING: width attribute used without height attribute - IGNORED!\n^;
+  }
+  if ((!$params{'width'}) and ($params{'height'})) {
+    $params{'height'} = 0;
+    _carp qq^WARNING: height attribute used without width attribute - IGNORED!\n^;
+  }
+
+  if (($params{'width'} > 0) and ($params{'height'} > 0)) {
+    if (defined($params{'unit'})) {
+      if ($params{'unit'} eq "mm") {
+        $params{'width'} = $params{'width'} * 10;
+        $params{'height'} = $params{'height'} * 10;
+      } elsif ($params{'unit'} eq "cm") {
+        $params{'width'} = $params{'width'} * 100;
+        $params{'height'} = $params{'height'} * 100;
+      } elsif ($params{'unit'} eq "pt") {
+        $params{'width'} = $params{'width'} * 254.09836 / 72;
+        $params{'height'} = $params{'height'} * 254.09836 / 72;
+      } elsif ($params{'unit'} =~ /^\d+\.*\d*$/i) {
+        $params{'width'} = $params{'width'} * 254.09836 / $params{'unit'};
+        $params{'height'} = $params{'height'} * 254.09836 / $params{'unit'};
+      } else {
+        $params{'width'} = $params{'width'} * 254.09836;
+        $params{'height'} = $params{'height'} * 254.09836;
+      }
+    } else {
+      $params{'width'} = $params{'width'} * 254.09836;
+      $params{'height'} = $params{'height'} * 254.09836;
+    }
+  } elsif (($params{'width'} < 0) or ($params{'height'} < 0)) {
+    $params{'width'} = 0;
+    $params{'height'} = 0;
+    _carp qq^WARNING: height, width attributes may not have negative values - IGNORED!\n^;
+  }
+
+  if (($dialog) and ((defined($params{'prompt'})) or (defined($params{'file'})))) {
+    $params{'dialog'} = $params{'dialog'} | PRINTTOFILE;
+    undef $params{'prompt'};
+  }
+
+  $self->{dc} = _CreatePrinter($params{'printer'}, $dialog, $params{'dialog'}, $params{'copies'}, $params{'collate'}, $params{'minp'}, $params{'maxp'}, $params{'orientation'}, $params{'papersize'}, $params{'duplex'}, $params{'source'}, $params{'color'}, $params{'height'}, $params{'width'});
   unless ($self->{dc}) {
-    croak "ERROR: Cannot create printer object! ${\_GetLastError()}";
+    _croak "ERROR: Cannot create printer object! ${\_GetLastError()}";
+    return undef;
   }
 
-  $self->Unit($params{'unit'});
+  unless (defined($self->Unit($params{'unit'}))) { return undef; }
 
-  $self->{flags}   = $params{'dialog'};
+  $self->{flags} = $params{'dialog'};
+
+  if (($self->{flags} & PRINTTOFILE) || (defined($params{'prompt'}))) {
+    my ($suggest, $indir) = ("", "");
+    if ((defined($params{'description'})) and ($params{'description'} ne "")) {
+      $suggest = $params{'description'};
+      $suggest =~ s/[\"\*\/\:\<\>\?\\\|]|[\x00-\x1f]/-/g;
+      $suggest =~ s/\..*?$|\s\s|^\s|\s$//g;
+    } elsif (defined($params{'file'})) {
+      $suggest = $params{'file'};
+      $suggest =~ s/(.*\\)//g;
+      $indir = $1;
+    } else {
+      $suggest = "Printer";
+    }
+    if (defined($params{'pdf'})) {
+      my $ext = $params{'file'} ? "" : ".pdf";
+      $params{'file'} = _SaveAs(2, $suggest.$ext, $indir);
+    } else {
+      my $ext = $params{'file'} ? "" : ".prn";
+      $params{'file'} = _SaveAs(1, $suggest.$ext, $indir);
+    }
+    if ($params{'file'} eq "") {
+      _croak "ERROR: Save to file failed! ${\_GetLastError()}";
+      return undef;
+    }
+  }
+
+  if ((defined($params{'pdf'})) and (!defined($params{'file'}))) {
+    delete $params{'pdf'};
+    _carp qq^WARNING: pdf attribute used without file attribute - IGNORED!\n^;
+  }
+
   $self->{copies}  = $params{'copies'};
   $self->{collate} = $params{'collate'};
   $self->{minp}    = $params{'minp'};
   $self->{maxp}    = $params{'maxp'};
 
-  if (!defined($params{'dc'}) || !$params{'dc'}) {
-    $self->Start($params{description}, $params{'file'});
+  if (!defined($params{'dc'})) {
+    unless (defined($self->Start($params{description}, $params{'file'}))) { return undef; }
   }
 
-  $self->Space(1, 0, 0, 1, 0, 0);
-  $self->Pen(1, 0, 0, 0);
-  $self->Color(0, 0, 0);
-  $self->Brush(128, 128, 128);
-  $self->Font($self->Font());
+  unless (defined($self->Space(1, 0, 0, 1, 0, 0))) { return undef; }
+  unless (defined($self->Pen(1, 0, 0, 0))) { return undef; }
+  unless (defined($self->Color(0, 0, 0))) { return undef; }
+  unless (defined($self->Brush(128, 128, 128))) { return undef; }
+  unless (defined($self->Font($self->Font()))) { return undef; }
 
   return 1;
 
@@ -522,7 +674,9 @@ sub _num {
     if ($val =~ /^\-*\d+\.*\d*$/) {
       return 1;
     } else {
-      croak qq^ERROR: Argument "$val" isn't numeric!\n^;
+      $numcroaked = 1;
+      _croak qq^ERROR: Argument "$val" isn't numeric!\n^;
+      return undef;
     }
   } else {
     return 0;
@@ -583,28 +737,38 @@ sub _pdf {
 
   if ((defined($params{'pdf'})) and (defined($pdfend[0]))) {
 
-    my $oldout;
+    my $olderr;
+    if ($params{'pdf'} == 0) {
+      open $olderr, ">&STDERR";
+      open (STDERR, ">nul");
+      select STDERR; $| = 1;
+    }
     if ($params{'pdf'} == 1) {
-      open $oldout, ">&STDOUT";
-      open (STDOUT, ">$pdfend[1].log");
-      select STDOUT; $| = 1;
+      open $olderr, ">&STDERR";
+      open (STDERR, ">$pdfend[1].log");
+      select STDERR; $| = 1;
     }
 
     unless (Win32::Printer::_GhostPDF(@pdfend)) {
-      croak "ERROR: Cannot create PDF document! ${\_GetLastError()}";
+      if (($params{'pdf'} == 0) || ($params{'pdf'} == 1)) {
+        close STDERR;
+        open STDERR, ">&", $olderr;
+      }
+      return 0;
     }
 
-    if ($params{'pdf'} == 1) {
-      close STDOUT;
-      open STDOUT, ">&", $oldout;
+    if (($params{'pdf'} == 0) || ($params{'pdf'} == 1)) {
+      close STDERR;
+      open STDERR, ">&", $olderr;
     }
 
     unlink "$pdfend[0]";
-    unlink "$pdfend[1].log" if $params{'pdf'} == 0;
 
     @pdfend = ();
 
   }
+
+  return 1;
 
 }
 
@@ -614,23 +778,23 @@ sub Unit {
 
   my $self = shift;
 
-  if ($#_ > 0) { carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ > 0) { _carp "WARNING: Too many actual parameters!\n"; }
 
   my $unit = shift;
 
   if ($unit) {
-    if ($unit =~ /^mm$/i) {
+    if ($unit eq "mm") {
       $self->{unit} = 25.409836;
-    } elsif ($unit =~ /^cm$/i) {
+    } elsif ($unit eq "cm") {
       $self->{unit} = 2.5409836;
-    } elsif ($unit =~ /^in$/i) {
+    } elsif ($unit eq "in") {
       $self->{unit} = 1;
-    } elsif ($unit =~ /^pt$/i) {
+    } elsif ($unit eq "pt") {
       $self->{unit} = 72;
-    } elsif ($unit =~ /^\d+\.\d*$/i) {
+    } elsif ($unit =~ /^\d+\.*\d*$/i) {
       $self->{unit} = $unit;
     } else {
-      carp "WARNING: Invalid unit \"$unit\"! Units set to \"in\".\n";
+      _carp "WARNING: Invalid unit \"$unit\"! Units set to \"in\".\n";
       $self->{unit} = 1;
     }
   } else {
@@ -639,15 +803,43 @@ sub Unit {
 
   $self->{xres} = $self->Caps(LOGPIXELSX);
   $self->{yres} = $self->Caps(LOGPIXELSY);
+  unless (defined($self->{xres})) { return undef; }
+  unless (defined($self->{xres})) { return undef; }
 
-  $self->{xsize} = $self->_xp2un($self->Caps(PHYSICALWIDTH));
-  $self->{ysize} = $self->_yp2un($self->Caps(PHYSICALHEIGHT));
+  my $phwid = $self->Caps(PHYSICALWIDTH);
+  my $phhei = $self->Caps(PHYSICALHEIGHT);
+  unless (defined($phwid)) { return undef; }
+  unless (defined($phhei)) { return undef; }
+  $self->{xsize} = $self->_xp2un($phwid);
+  $self->{ysize} = $self->_yp2un($phhei);
 
   unless (($self->{xres} > 0) or ($self->{yres} > 0) or ($self->{xsize} > 0) or ($self->{ysize} > 0)) {
-    croak "ERROR: Cannot get printer resolution! ${\_GetLastError()}";
+    _croak "ERROR: Cannot get printer resolution! ${\_GetLastError()}";
+    return undef;
   }
 
   return $self->{unit};
+
+}
+
+#------------------------------------------------------------------------------#
+
+sub Debug {
+
+  my $self = shift;
+
+  if ($#_ != 0) { _croak "ERROR: Wrong number of parameters!\n"; }
+
+  $numcroaked = 0;
+  _num($_[0]);
+  return undef if $numcroaked;
+  if (($debuglevel > -1) and ($debuglevel < 3)) {
+    $debuglevel = shift;
+  } else {
+    _croak "ERROR: Invalid argument!\n";
+  }
+
+  return 1;
 
 }
 
@@ -657,15 +849,14 @@ sub Next {
 
   my $self = shift;
 
-  if ($#_ > 1) { carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ > 1) { _carp "WARNING: Too many actual parameters!\n"; }
 
   my $desc = shift;
   my $file = shift;
 
-  $self->End();
-  $self->Start($desc, $file);
-
-  $self->Space(1, 0, 0, 1, 0, 0);
+  unless (defined($self->End())) { return undef; }
+  unless (defined($self->Start($desc, $file))) { return undef; }
+  unless (defined($self->Space(1, 0, 0, 1, 0, 0))) { return undef; }
 
   return 1;
 
@@ -677,7 +868,7 @@ sub Start {
 
   my $self = shift;
 
-  if ($#_ > 1) { carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ > 1) { _carp "WARNING: Too many actual parameters!\n"; }
 
   my $desc = shift;
   my $file = shift;
@@ -703,14 +894,16 @@ sub Start {
   }
 
   unless (_StartDoc($self->{dc}, $desc || $params{'description'} || 'Printer', $file) > 0) {
-    croak "ERROR: Cannot start the document! ${\_GetLastError()}";
+    _croak "ERROR: Cannot start the document! ${\_GetLastError()}";
+    return undef;
   }
 
   unless (_StartPage($self->{dc}) > 0) {
-    croak "ERROR: Cannot start the page! ${\_GetLastError()}";
+    _croak "ERROR: Cannot start the page! ${\_GetLastError()}";
+    return undef;
   }
 
-  $self->Space(1, 0, 0, 1, 0, 0);
+  unless (defined($self->Space(1, 0, 0, 1, 0, 0))) { return undef; }
 
   return 1;
 
@@ -722,18 +915,24 @@ sub End {
 
   my $self = shift;
 
-  if ($#_ > -1) { carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ > -1) { _carp "WARNING: Too many actual parameters!\n"; }
 
   unless (_EndPage($self->{dc}) > 0) {
-    croak "ERROR: Cannot end the page! ${\_GetLastError()}";
+    _croak "ERROR: Cannot end the page! ${\_GetLastError()}";
+    return undef;
   }
 
   unless (_EndDoc($self->{dc})) {
-    croak "ERROR: Cannot end the document! ${\_GetLastError()}";
+    _croak "ERROR: Cannot end the document! ${\_GetLastError()}";
+    return undef;
   }
 
-  _pdf();
+  unless (_pdf()) {
+    _croak "ERROR: Cannot create PDF document! ${\_GetLastError()}";
+    return undef;
+  }
 
+  if (defined($params{'file'})) { return $params{'file'}; }
   return 1;
 
 }
@@ -744,14 +943,19 @@ sub Abort {
 
   my $self = shift;
 
-  if ($#_ > -1) { carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ > -1) { _carp "WARNING: Too many actual parameters!\n"; }
 
   unless (_AbortDoc($self->{dc})) {
-    croak "ERROR: Cannot abort the document! ${\_GetLastError()}";
+    _croak "ERROR: Cannot abort the document! ${\_GetLastError()}";
+    return undef;
   }
 
-  _pdf();
+  unless (_pdf()) {
+    _croak "ERROR: Cannot create PDF document! ${\_GetLastError()}";
+    return undef;
+  }
 
+  if (defined($params{'file'})) { return $params{'file'}; }
   return 1;
 
 }
@@ -762,17 +966,19 @@ sub Page {
 
   my $self = shift;
 
-  if ($#_ > -1) { carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ > -1) { _carp "WARNING: Too many actual parameters!\n"; }
 
   unless (_EndPage($self->{dc}) > 0) {
-    croak "ERROR: Cannot end the page! ${\_GetLastError()}";
+    _croak "ERROR: Cannot end the page! ${\_GetLastError()}";
+    return undef;
   }
 
   unless (_StartPage($self->{dc}) > 0) {
-    croak "ERROR: Cannot start the page! ${\_GetLastError()}";
+    _croak "ERROR: Cannot start the page! ${\_GetLastError()}";
+    return undef;
   }
 
-  $self->Space(1, 0, 0, 1, 0, 0);
+  unless (defined($self->Space(1, 0, 0, 1, 0, 0))) { return undef; }
 
   return 1;
 
@@ -784,18 +990,26 @@ sub Space {
 
   my $self = shift;
 
-  if ($#_ > 5) { carp "WARNING: Too many actual parameters!\n"; }
-  if ($#_ < 5) { croak "ERROR: Not enough actual parameters!\n"; }
+  if ($#_ > 5) { _carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ < 5) {
+    _croak "ERROR: Not enough actual parameters!\n";
+    return undef;
+  }
 
+  $numcroaked = 0;
   for (@_) { _num($_); }
+  return undef if $numcroaked;
 
   my ($m11, $m12, $m21, $m22, $dx, $dy) = @_;
 
   my $xoff = $self->Caps(PHYSICALOFFSETX);
   my $yoff = $self->Caps(PHYSICALOFFSETY);
+  unless (defined($xoff)) { return undef; }
+  unless (defined($yoff)) { return undef; }
 
   if (_SetWorldTransform($self->{dc}, $m11, $m12, $m21, $m22, $self->_xun2p($dx) - $xoff, $self->_yun2p($dy) - $yoff) == 0) {
-    croak "ERROR: Cannot transform space! ${\_GetLastError()}";
+    _croak "ERROR: Cannot transform space! ${\_GetLastError()}";
+    return undef;
   }
 
   return 1;
@@ -808,12 +1022,13 @@ sub Font {
 
   my $self = shift;
 
-  if ($#_ > 3) { carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ > 3) { _carp "WARNING: Too many actual parameters!\n"; }
 
   if (($#_ == 0) and ($_[0] =~ /-*\d+/)) {
 
     unless (_SelectObject($self->{dc}, $_[0])) {
-      croak "ERROR: Cannot select font! ${\_GetLastError()}";
+      _croak "ERROR: Cannot select font! ${\_GetLastError()}";
+      return undef;
     }
 
     return $_[0];
@@ -821,11 +1036,12 @@ sub Font {
   } else {
 
     my ($face, $size, $angle, $charset) = @_;
-
+    $numcroaked = 0;
     $face = 'Courier' if !defined $face;
-    $size = 10 if !_num($size);
-    $angle = 0 if !_num($angle);
-    $charset = DEFAULT if !_num($charset);
+    $size = 10 unless _num($size);
+    $angle = 0 unless _num($angle);
+    $charset = DEFAULT unless _num($charset);
+    return undef if $numcroaked;
 
     my $fontid = "$face\_$size\_$angle\_$charset";
 
@@ -862,13 +1078,15 @@ sub Font {
       if ($self->{obj}->{$fontid}) {
 
         unless (_SelectObject($self->{dc}, $self->{obj}->{$fontid})) {
-          croak "ERROR: Cannot select font! ${\_GetLastError()}";
+          _croak "ERROR: Cannot select font! ${\_GetLastError()}";
+          return undef;
         }
 
         return $self->{obj}->{$fontid};
 
       } else {
-        croak "ERROR: Cannot create font! ${\_GetLastError()}";
+        _croak "ERROR: Cannot create font! ${\_GetLastError()}";
+        return undef;
       }
 
     }
@@ -883,40 +1101,50 @@ sub Write {
 
   my $self = shift;
 
-  if ($#_ > 6) { carp "WARNING: Too many actual parameters!\n"; }
-  if ($#_ < 2) { croak "ERROR: Not enough actual parameters!\n"; }
+  if ($#_ > 6) { _carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ < 2) {
+    _croak "ERROR: Not enough actual parameters!\n";
+    return undef;
+  }
 
   if ((($#_ > 1) and ($#_ < 4)) or (($_[3] & 0x80000000) and ($#_ == 4))) {
 
     my ($string, $x, $y, $align) = @_;
 
+    $numcroaked = 0;
     for ($x, $y, $align) {
       _num($_);
     }
+    return undef if $numcroaked;
 
-    if (!defined($string)) { $string = ""; }
-
-    if (!$align) { $align = LEFT; }
+    unless (defined($string)) { $string = ""; }
+    unless ($align) { $align = LEFT; }
 
     if ($align & 0x00020000) { $align = $align - 0x00020000 + 0x00000100; }
     if ($align & 0x00080000) { $align = $align - 0x00080000 + 0x00000006; }
 
     if ($align & 0x80000000) {
-
+      unless(_num($_[4])) {
+        _croak "ERROR: Cannot set text justification! Wrong justification width\n";
+        return undef;
+      }
       my $width = $self->_xun2p($_[4]);
 
       unless (_SetJustify($self->{dc}, $string, $width)) {
-        croak "ERROR: Cannot set text justification! ${\_GetLastError()}";
+        _croak "ERROR: Cannot set text justification! ${\_GetLastError()}";
+        return undef;
       }
 
     }
 
     unless (_TextOut($self->{dc}, $self->_xun2p($x), $self->_yun2p($y), $string, $align)) {
-      croak "ERROR: Cannot write text! ${\_GetLastError()}";
+      _croak "ERROR: Cannot write text! ${\_GetLastError()}";
+      return undef;
     }
 
     unless (_SetJustify($self->{dc}, "", -1)) {
-      croak "ERROR: Cannot unset text justification! ${\_GetLastError()}";
+      _croak "ERROR: Cannot unset text justification! ${\_GetLastError()}";
+      return undef;
     }
 
     return 1;
@@ -925,9 +1153,11 @@ sub Write {
 
     my ($string, $x, $y, $w, $h, $f, $tab) = @_;
 
+    $numcroaked = 0;
     for ($x, $y, $w, $h, $f, $tab) {
       _num($_);
     }
+    return undef if $numcroaked;
 
     if (!defined($string)) { $string = ""; }
 
@@ -946,7 +1176,8 @@ sub Write {
 			$f, $len, $tab);
 
     unless ($height) {
-        croak "ERROR: Cannot draw text! ${\_GetLastError()}";
+      _croak "ERROR: Cannot draw text! ${\_GetLastError()}";
+      return undef;
     }
 
     return wantarray ? ($self->_yp2un($width), $self->_yp2un($height), $len, $string) : $self->_yp2un($height);
@@ -970,21 +1201,27 @@ sub Pen {
       $self->{obj}->{$penid} = _CreatePen(PS_NULL, 0, 0, 0, 0);
 
       unless ($self->{obj}->{$penid}) {
-        croak "ERROR: Cannot create pen! ${\_GetLastError()}";
+        _croak "ERROR: Cannot create pen! ${\_GetLastError()}";
+        return undef;
       }
 
     }
 
   } else {
 
-    if ($#_ > 4) { carp "WARNING: Too many actual parameters!\n"; }
-    if ($#_ < 3) { croak "ERROR: Not enough actual parameters!\n"; }
+    if ($#_ > 4) { _carp "WARNING: Too many actual parameters!\n"; }
+    if ($#_ < 3) {
+      _croak "ERROR: Not enough actual parameters!\n";
+      return undef;
+    }
 
     my ($w, $r, $g, $b, $s) = @_;
 
+    $numcroaked = 0;
     for ($w, $r, $g, $b, $s) {
       _num($_);
     }
+    return undef if $numcroaked;
 
     if (!defined($s)) { $s = PS_SOLID; }
 
@@ -1001,7 +1238,8 @@ sub Pen {
       $self->{obj}->{$penid} = _CreatePen($s, $w, $r, $g, $b);
 
       unless ($self->{obj}->{$penid}) {
-        croak "ERROR: Cannot create pen! ${\_GetLastError()}";
+        _croak "ERROR: Cannot create pen! ${\_GetLastError()}";
+        return undef;
       }
 
     }
@@ -1009,7 +1247,8 @@ sub Pen {
   }
 
   unless (_SelectObject($self->{dc}, $self->{obj}->{$penid})) {
-    croak "ERROR: Cannot select pen! ${\_GetLastError()}";
+    _croak "ERROR: Cannot select pen! ${\_GetLastError()}";
+    return undef;
   }
 
   return 1;
@@ -1022,17 +1261,23 @@ sub Color {
 
   my $self = shift;
 
-  if ($#_ > 2) { carp "WARNING: Too many actual parameters!\n"; }
-  if ($#_ < 2) { croak "ERROR: Not enough actual parameters!\n"; }
+  if ($#_ > 2) { _carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ < 2) {
+    _croak "ERROR: Not enough actual parameters!\n";
+    return undef;
+  }
 
+  $numcroaked = 0;
   for (@_) { _num($_); }
+  return undef if $numcroaked;
 
   my ($r, $g, $b) = @_;
 
   my $coloref = _SetTextColor($self->{dc}, $r, $g, $b);
 
   if (!defined($coloref) or ($coloref =~ /-/)) {
-    croak "ERROR: Cannot select color! ${\_GetLastError()}";
+    _croak "ERROR: Cannot select color! ${\_GetLastError()}";
+    return undef;
   }
 
   return 1;
@@ -1045,7 +1290,9 @@ sub Brush {
 
   my $self = shift;
 
+  $numcroaked = 0;
   for (@_) { _num($_); }
+  return undef if $numcroaked;
 
   my ($r, $g, $b, $hs) = @_;
 
@@ -1060,15 +1307,19 @@ sub Brush {
       $self->{obj}->{$brushid} = _CreateBrushIndirect(BS_NULL, 0, 255, 255, 255);
 
       unless ($self->{obj}->{$brushid}) {
-        croak "ERROR: Cannot create brush! ${\_GetLastError()}";
+        _croak "ERROR: Cannot create brush! ${\_GetLastError()}";
+        return undef;
       }
 
     }
 
   } else {
 
-    if ($#_ > 3) { carp "WARNING: Too many actual parameters!\n"; }
-    if ($#_ < 2) { croak "ERROR: Not enough actual parameters!\n"; }
+    if ($#_ > 3) { _carp "WARNING: Too many actual parameters!\n"; }
+    if ($#_ < 2) {
+      _croak "ERROR: Not enough actual parameters!\n";
+      return undef;
+    }
 
     if (defined($hs)) {
       $bs = BS_HATCHED;
@@ -1084,7 +1335,8 @@ sub Brush {
       $self->{obj}->{$brushid} = _CreateBrushIndirect($bs, $hs, $r, $g, $b);
 
       unless ($self->{obj}->{$brushid}) {
-        croak "ERROR: Cannot create brush! ${\_GetLastError()}";
+        _croak "ERROR: Cannot create brush! ${\_GetLastError()}";
+        return undef;
       }
 
     }
@@ -1092,7 +1344,8 @@ sub Brush {
   }
 
   unless (_SelectObject($self->{dc}, $self->{obj}->{$brushid})) {
-    croak "ERROR: Cannot select brush! ${\_GetLastError()}";
+    _croak "ERROR: Cannot select brush! ${\_GetLastError()}";
+    return undef;
   }
 
   return 1;
@@ -1105,14 +1358,20 @@ sub Fill {
 
   my $self = shift;
 
-  if ($#_ > 0) { carp "WARNING: Too many actual parameters!\n"; }
-  if ($#_ < 0) { croak "ERROR: Not enough actual parameters!\n"; }
+  if ($#_ > 0) { _carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ < 0) {
+    _croak "ERROR: Not enough actual parameters!\n";
+    return undef;
+  }
 
   my $fmode = shift;
+  $numcroaked = 0;
   _num($fmode);
+  return undef if $numcroaked;
 
   unless (_SetPolyFillMode($self->{dc}, $fmode)) {
-    croak "ERROR: Cannot select brush! ${\_GetLastError()}";
+    _croak "ERROR: Cannot select brush! ${\_GetLastError()}";
+    return undef;
   }
 
   return 1;
@@ -1125,10 +1384,15 @@ sub Rect {
 
   my $self = shift;
 
-  if ($#_ > 5) { carp "WARNING: Too many actual parameters!\n"; }
-  if ($#_ < 3) { croak "ERROR: Not enough actual parameters!\n"; }
+  if ($#_ > 5) { _carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ < 3) {
+    _croak "ERROR: Not enough actual parameters!\n";
+    return undef;
+  }
 
+  $numcroaked = 0;
   for (@_) { _num($_); }
+  return undef if $numcroaked;
 
   my ($x, $y, $w, $h, $ew, $eh) = @_;
 
@@ -1139,14 +1403,16 @@ sub Rect {
     unless (_RoundRect($self->{dc}, $self->_xun2p($x), $self->_yun2p($y),
 			     $self->_xun2p($x + $w), $self->_yun2p($y + $h),
 			     $self->_xun2p($ew), $self->_yun2p($eh))) {
-      croak "ERROR: Cannot draw rectangular! ${\_GetLastError()}";
+      _croak "ERROR: Cannot draw rectangular! ${\_GetLastError()}";
+      return undef;
     }
 
   } else {
 
     unless (_Rectangle($self->{dc}, $self->_xun2p($x), $self->_yun2p($y),
 			     $self->_xun2p($x + $w), $self->_yun2p($y + $h))) {
-      croak "ERROR: Cannot draw rectangular! ${\_GetLastError()}";
+      _croak "ERROR: Cannot draw rectangular! ${\_GetLastError()}";
+      return undef;
     }
 
   }
@@ -1161,16 +1427,22 @@ sub Ellipse {
 
   my $self = shift;
 
-  if ($#_ > 3) { carp "WARNING: Too many actual parameters!\n"; }
-  if ($#_ < 3) { croak "ERROR: Not enough actual parameters!\n"; }
+  if ($#_ > 3) { _carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ < 3) {
+    _croak "ERROR: Not enough actual parameters!\n";
+    return undef;
+  }
 
+  $numcroaked = 0;
   for (@_) { _num($_); }
+  return undef if $numcroaked;
 
   my ($x, $y, $w, $h) = @_;
 
   unless (_Ellipse($self->{dc}, $self->_xun2p($x), $self->_yun2p($y),
 			 $self->_xun2p($x + $w), $self->_yun2p($y + $h))) {
-    croak "ERROR: Cannot draw ellipse! ${\_GetLastError()}";
+    _croak "ERROR: Cannot draw ellipse! ${\_GetLastError()}";
+    return undef;
   }
 
   return 1;
@@ -1183,10 +1455,15 @@ sub Chord {
 
   my $self = shift;
 
-  if ($#_ > 5) { carp "WARNING: Too many actual parameters!\n"; }
-  if ($#_ < 5) { croak "ERROR: Not enough actual parameters!\n"; }
+  if ($#_ > 5) { _carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ < 5) {
+    _croak "ERROR: Not enough actual parameters!\n";
+    return undef;
+  }
 
+  $numcroaked = 0;
   for (@_) { _num($_); }
+  return undef if $numcroaked;
 
   my ($x, $y, $w, $h, $a1, $a2) = @_;
 
@@ -1209,7 +1486,8 @@ sub Chord {
 		       $self->_xun2p($x + $w), $self->_yun2p($y + $h),
 		       $self->_xun2p($xr1), $self->_yun2p($yr1),
 		       $self->_xun2p($xr2), $self->_yun2p($yr2))) {
-    croak "ERROR: Cannot draw chord! ${\_GetLastError()}";
+    _croak "ERROR: Cannot draw chord! ${\_GetLastError()}";
+    return undef;
   }
 
   return 1;
@@ -1222,10 +1500,15 @@ sub Pie {
 
   my $self = shift;
 
-  if ($#_ > 5) { carp "WARNING: Too many actual parameters!\n"; }
-  if ($#_ < 5) { croak "ERROR: Not enough actual parameters!\n"; }
+  if ($#_ > 5) { _carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ < 5) {
+    _croak "ERROR: Not enough actual parameters!\n";
+    return undef;
+  }
 
+  $numcroaked = 0;
   for (@_) { _num($_); }
+  return undef if $numcroaked;
 
   my ($x, $y, $w, $h, $a1, $a2) = @_;
 
@@ -1243,7 +1526,8 @@ sub Pie {
 		     $self->_xun2p($x + $w), $self->_yun2p($y + $h),
 		     $self->_xun2p($xr1), $self->_yun2p($yr1),
 		     $self->_xun2p($xr2), $self->_yun2p($yr2))) {
-    croak "ERROR: Cannot draw pie! ${\_GetLastError()}";
+    _croak "ERROR: Cannot draw pie! ${\_GetLastError()}";
+    return undef;
   }
 
   return 1;
@@ -1256,15 +1540,21 @@ sub Move {
 
   my $self = shift;
 
-  if ($#_ > 1) { carp "WARNING: Too many actual parameters!\n"; }
-  if ($#_ < 1) { croak "ERROR: Not enough actual parameters!\n"; }
+  if ($#_ > 1) { _carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ < 1) {
+    _croak "ERROR: Not enough actual parameters!\n";
+    return undef;
+  }
 
+  $numcroaked = 0;
   for (@_) { _num($_); }
+  return undef if $numcroaked;
 
   my ($x, $y) = @_;
 
   unless (_MoveTo($self->{dc}, $self->_xun2p($x), $self->_yun2p($y))) {
-    croak "ERROR: Cannot Move! ${\_GetLastError()}";
+    _croak "ERROR: Cannot Move! ${\_GetLastError()}";
+    return undef;
   }
 
   return 1;
@@ -1277,10 +1567,15 @@ sub Arc {
 
   my $self = shift;
 
-  if ($#_ > 5) { carp "WARNING: Too many actual parameters!\n"; }
-  if ($#_ < 5) { croak "ERROR: Not enough actual parameters!\n"; }
+  if ($#_ > 5) { _carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ < 5) {
+    _croak "ERROR: Not enough actual parameters!\n";
+    return undef;
+  }
 
+  $numcroaked = 0;
   for (@_) { _num($_); }
+  return undef if $numcroaked;
 
   my ($x, $y, $w, $h, $a1, $a2) = @_;
 
@@ -1298,7 +1593,8 @@ sub Arc {
 		     $self->_xun2p($x + $w), $self->_yun2p($y + $h),
 		     $self->_xun2p($xr1), $self->_yun2p($yr1),
 		     $self->_xun2p($xr2), $self->_yun2p($yr2))) {
-    croak "ERROR: Cannot draw arc! ${\_GetLastError()}";
+    _croak "ERROR: Cannot draw arc! ${\_GetLastError()}";
+    return undef;
   }
 
   return 1;
@@ -1311,10 +1607,15 @@ sub ArcTo {
 
   my $self = shift;
 
-  if ($#_ > 5) { carp "WARNING: Too many actual parameters!\n"; }
-  if ($#_ < 5) { croak "ERROR: Not enough actual parameters!\n"; }
+  if ($#_ > 5) { _carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ < 5) {
+    _croak "ERROR: Not enough actual parameters!\n";
+    return undef;
+  }
 
+  $numcroaked = 0;
   for (@_) { _num($_); }
+  return undef if $numcroaked;
 
   my ($x, $y, $w, $h, $a1, $a2) = @_;
 
@@ -1332,7 +1633,8 @@ sub ArcTo {
 		     $self->_xun2p($x + $w), $self->_yun2p($y + $h),
 		     $self->_xun2p($xr1), $self->_yun2p($yr1),
 		     $self->_xun2p($xr2), $self->_yun2p($yr2))) {
-    croak "ERROR: Cannot draw arc! ${\_GetLastError()}";
+    _croak "ERROR: Cannot draw arc! ${\_GetLastError()}";
+    return undef;
   }
 
   return 1;
@@ -1345,9 +1647,14 @@ sub Line {
 
   my $self = shift;
 
-  if ($#_ < 3) { croak "ERROR: Not enough actual parameters!\n"; }
+  if ($#_ < 3) {
+    _croak "ERROR: Not enough actual parameters!\n";
+    return undef;
+  }
 
+  $numcroaked = 0;
   for (@_) { _num($_); }
+  return undef if $numcroaked;
 
   my (@args) = @_;
   my $cnt = 1;
@@ -1355,7 +1662,8 @@ sub Line {
   @args = map { $cnt++%2 ? $self->_yun2p($_) : $self->_xun2p($_) } @args;
 
   unless (_Polyline($self->{dc}, @args)) {
-    croak "ERROR: Cannot draw line! ${\_GetLastError()}";
+    _croak "ERROR: Cannot draw line! ${\_GetLastError()}";
+    return undef;
   }
 
   return 1;
@@ -1368,9 +1676,14 @@ sub LineTo {
 
   my $self = shift;
 
-  if ($#_ < 1) { croak "ERROR: Not enough actual parameters!\n"; }
+  if ($#_ < 1) {
+    _croak "ERROR: Not enough actual parameters!\n";
+    return undef;
+  }
 
+  $numcroaked = 0;
   for (@_) { _num($_); }
+  return undef if $numcroaked;
 
   my (@args) = @_;
   my ($cnt) = 1;
@@ -1378,7 +1691,8 @@ sub LineTo {
   @args = map { $cnt++%2 ? $self->_yun2p($_) : $self->_xun2p($_) } @args;
 
   unless (_PolylineTo($self->{dc}, @args)) {
-    croak "ERROR: Cannot draw line! ${\_GetLastError()}";
+    _croak "ERROR: Cannot draw line! ${\_GetLastError()}";
+    return undef;
   }
 
   return 1;
@@ -1391,9 +1705,14 @@ sub Poly {
 
   my $self = shift;
 
-  if ($#_ < 5) { croak "ERROR: Not enough actual parameters!\n"; }
+  if ($#_ < 5) {
+    _croak "ERROR: Not enough actual parameters!\n";
+    return undef;
+  }
 
+  $numcroaked = 0;
   for (@_) { _num($_); }
+  return undef if $numcroaked;
 
   my (@args) = @_;
   my ($cnt) = 1;
@@ -1401,7 +1720,8 @@ sub Poly {
   @args = map { $cnt++%2 ? $self->_yun2p($_) : $self->_xun2p($_) } @args;
 
   unless (_Polygon($self->{dc}, @args)) {
-    croak "ERROR: Cannot draw polygon! ${\_GetLastError()}";
+    _croak "ERROR: Cannot draw polygon! ${\_GetLastError()}";
+    return undef;
   }
 
   return 1;
@@ -1414,9 +1734,14 @@ sub Bezier {
 
   my $self = shift;
 
-  if ($#_ < 7) { croak "ERROR: Not enough actual parameters!\n"; }
+  if ($#_ < 7) {
+    _croak "ERROR: Not enough actual parameters!\n";
+    return undef;
+  }
 
+  $numcroaked = 0;
   for (@_) { _num($_); }
+  return undef if $numcroaked;
 
   my (@args) = @_;
   my ($cnt) = 1;
@@ -1424,7 +1749,8 @@ sub Bezier {
   @args = map { $cnt++%2 ? $self->_yun2p($_) : $self->_xun2p($_) } @args;
 
   unless (_PolyBezier($self->{dc}, @args)) {
-    croak "ERROR: Cannot draw polybezier! ${\_GetLastError()}";
+    _croak "ERROR: Cannot draw polybezier! ${\_GetLastError()}";
+    return undef;
   }
 
   return 1;
@@ -1437,9 +1763,14 @@ sub BezierTo {
 
   my $self = shift;
 
-  if ($#_ < 5) { croak "ERROR: Not enough actual parameters!\n"; }
+  if ($#_ < 5) {
+    _croak "ERROR: Not enough actual parameters!\n";
+    return undef;
+  }
 
+  $numcroaked = 0;
   for (@_) { _num($_); }
+  return undef if $numcroaked;
 
   my (@args) = @_;
   my ($cnt) = 1;
@@ -1447,7 +1778,8 @@ sub BezierTo {
   @args = map { $cnt++%2 ? $self->_yun2p($_) : $self->_xun2p($_) } @args;
 
   unless (_PolyBezierTo($self->{dc}, @args)) {
-    croak "ERROR: Cannot draw polybezier! ${\_GetLastError()}";
+    _croak "ERROR: Cannot draw polybezier! ${\_GetLastError()}";
+    return undef;
   }
 
   return 1;
@@ -1460,10 +1792,11 @@ sub PBegin {
 
   my $self = shift;
 
-  if ($#_ > -1) { carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ > -1) { _carp "WARNING: Too many actual parameters!\n"; }
 
   unless (_BeginPath($self->{dc})) {
-    croak "ERROR: Cannot begin path! ${\_GetLastError()}";
+    _croak "ERROR: Cannot begin path! ${\_GetLastError()}";
+    return undef;
   }
 
   return 1;
@@ -1476,10 +1809,11 @@ sub PAbort {
 
   my $self = shift;
 
-  if ($#_ > -1) { carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ > -1) { _carp "WARNING: Too many actual parameters!\n"; }
 
   unless (_AbortPath($self->{dc})) {
-    croak "ERROR: Cannot abort path! ${\_GetLastError()}";
+    _croak "ERROR: Cannot abort path! ${\_GetLastError()}";
+    return undef;
   }
 
   return 1;
@@ -1493,10 +1827,11 @@ sub PEnd {
 
   my $self = shift;
 
-  if ($#_ > -1) { carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ > -1) { _carp "WARNING: Too many actual parameters!\n"; }
 
   unless (_EndPath($self->{dc})) {
-    croak "ERROR: Cannot end path! ${\_GetLastError()}";
+    _croak "ERROR: Cannot end path! ${\_GetLastError()}";
+    return undef;
   }
 
   return 1;
@@ -1509,10 +1844,11 @@ sub PDraw {
 
   my $self = shift;
 
-  if ($#_ > -1) { carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ > -1) { _carp "WARNING: Too many actual parameters!\n"; }
 
   unless (_StrokeAndFillPath($self->{dc})) {
-    croak "ERROR: Cannot draw path! ${\_GetLastError()}";
+    _croak "ERROR: Cannot draw path! ${\_GetLastError()}";
+    return undef;
   }
 
   return 1;
@@ -1525,17 +1861,67 @@ sub PClip {
 
   my $self = shift;
 
-  if ($#_ > 0) { carp "WARNING: Too many actual parameters!\n"; }
-  if ($#_ < 0) { croak "ERROR: Not enough actual parameters!\n"; }
+  if ($#_ > 0) { _carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ < 0) {
+    _croak "ERROR: Not enough actual parameters!\n";
+  }
 
   my $mode = shift;
+  $numcroaked = 0;
   _num($mode);
+  return undef if $numcroaked;
 
   unless (_SelectClipPath($self->{dc}, $mode)) {
-    croak "ERROR: Cannot create clip path! ${\_GetLastError()}";
+    _croak "ERROR: Cannot create clip path! ${\_GetLastError()}";
+    return undef;
   }
 
   return 1;
+
+}
+
+#------------------------------------------------------------------------------#
+
+sub EBar {
+
+  my $self = shift;
+
+  if ($#_ < 0) {
+    _croak "ERROR: Not enough actual parameters!\n";
+    return undef;
+  }
+
+  if ($#_ > 4) {
+    _carp "WARNING: Too many actual parameters!\n"; 
+  }
+
+  my ($string, $flags, $nbw, $bh, $fonth) = @_;
+
+  $numcroaked = 0;
+  unless(_num($flags)) { $flags = EB_128X; }
+  unless(_num($nbw)) { $nbw = 0.54; }
+  unless(_num($bh)) { $bh = 20; }
+  unless(_num($fonth)) { $fonth = 0; }
+  return undef if $numcroaked;
+
+  my ($chk1, $chk2, $error) = (0, 0, 0);
+
+  my $barmeta = _EBar($self->{dc}, $string, $self->_pts2p($nbw), $self->_pts2p($bh), $flags, $chk1, $chk2, $fonth, $error);
+  unless ($barmeta) {
+    my @errmessage;
+    $errmessage[1]  = "Select barcode standard!\n";
+    $errmessage[2]  = "Unsupported character in barcode string!\n";
+    $errmessage[4]  = "Wrong barcode string size!\n";
+    $errmessage[8]  = "GDI error!\n";
+    $errmessage[16] = "Memory allocation error!\n";
+    $errmessage[32] = "Could not load EBar.dll function!\n";
+    _croak "ERROR: ".$errmessage[$error];
+    return undef;
+  }
+
+  $self->{imager}->{$barmeta} = 0;
+
+  return wantarray ? ($barmeta, $chk1, $chk2, $error) : $barmeta;
 
 }
 
@@ -1545,7 +1931,10 @@ sub Image {
 
   my $self = shift;
 
-  if (($#_ != 0) and ($#_ != 2) and ($#_ != 4)) { croak "WARNING: Wrong number parameters!\n"; }
+  if (($#_ != 0) and ($#_ != 2) and ($#_ != 4)) {
+    _croak "ERROR: Wrong number parameters!\n";
+    return undef;
+  }
 
   my ($width, $height) = (0, 0);
 
@@ -1555,6 +1944,7 @@ sub Image {
 
     if ($fileorref !~ /^-*\d+$/) {
       $fileorref = $self->Image($fileorref);
+      unless (defined($fileorref)) { return undef; }
     }
 
     _GetEnhSize($self->{dc}, $fileorref, $width, $height);
@@ -1565,7 +1955,8 @@ sub Image {
     if ((!defined($h)) or ($h == 0)) { $h = $height; }
 
     unless (_PlayEnhMetaFile($self->{dc}, $fileorref, $self->_xun2p($x), $self->_yun2p($y), $self->_xun2p($x + $w), $self->_yun2p($y + $h))) {
-      croak "ERROR: Cannot display metafile! ${\_GetLastError()}";
+      _croak "ERROR: Cannot display metafile! ${\_GetLastError()}";
+      return undef;
     }
 
     return wantarray ? ($fileorref, $width, $height) : $fileorref;
@@ -1586,12 +1977,14 @@ sub Image {
     if ($file =~ /.emf$/) {
       $fref = _GetEnhMetaFile($file);
       unless ($fref) {
-        croak "ERROR: Cannot load metafile! ${\_GetLastError()}";
+        _croak "ERROR: Cannot load metafile! ${\_GetLastError()}";
+        return undef;
       }
     } elsif ($file =~ /.wmf$/) {
       $fref = _GetWinMetaFile($self->{dc}, $file);
       unless ($fref) {
-        croak "ERROR: Cannot load metafile! ${\_GetLastError()}";
+        _croak "ERROR: Cannot load metafile! ${\_GetLastError()}";
+        return undef;
       }
     } else {
 
@@ -1645,11 +2038,16 @@ sub Image {
           $fref = _LoadBitmap($self->{dc}, $file, FIF_WBMP);
         } elsif ($file =~ /\.PSD$/i) {
           $fref = _LoadBitmap($self->{dc}, $file, FIF_PSD);
+        } elsif ($file =~ /\.XBM$/i) {
+          $fref = _LoadBitmap($self->{dc}, $file, FIF_XBM);
+        } elsif ($file =~ /\.XPM$/i) {
+          $fref = _LoadBitmap($self->{dc}, $file, FIF_XPM);
         }
       }
 
       unless ($fref) {
-        croak "ERROR: Cannot load bitmap! ${\_GetLastError()}";
+        _croak "ERROR: Cannot load bitmap! ${\_GetLastError()}";
+        return undef;
       }
 
     }
@@ -1672,11 +2070,19 @@ sub Caps {
 
   my $self = shift;
 
-  if ($#_ < 0) { croak "ERROR: Not enough actual parameters!\n"; }
-  if ($#_ > 0) { carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ < 0) {
+    _croak "ERROR: Not enough actual parameters!\n";
+    return undef;
+  }
+  if ($#_ > 0) {
+    _carp "WARNING: Too many actual parameters!\n";
+    return undef;
+  }
 
   my $index = shift;
+  $numcroaked = 0;
   _num($index);
+  return undef if $numcroaked;
 
   return _GetDeviceCaps($self->{dc}, $index);
 
@@ -1688,7 +2094,7 @@ sub Close {
 
   my $self = shift;
 
-  if ($#_ > 0) { carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ > 0) { _carp "WARNING: Too many actual parameters!\n"; }
 
   if ($#_ == 0) {
     if ($_[0] =~ /^-*\d+$/) {
@@ -1710,18 +2116,21 @@ sub Close {
 
     for (keys %{$self->{imager}}) {
       _DeleteEnhMetaFile($_);
-      delete $self->{imagef}->{$self->{imager}->{$_}};
-      delete $self->{imager}->{$_};
     }
 
     if ($self->{dc}) {
       _EndPage($self->{dc});
       if (_EndDoc($self->{dc}) > 0) {
-        _pdf();
-       }
+        unless(_pdf()) {
+          _croak "ERROR: Cannot create PDF document! ${\_GetLastError()}";
+          return undef;
+        }
+      }
       _DeleteDC($self->{dc});
     }
-    $self->{dc} = 0;
+
+    undef $self->{dc};
+    if (defined($params{'file'})) { return $params{'file'}; }
 
   }
 
@@ -1796,19 +2205,23 @@ B<1.> Make sure you have a C/C++ compiler and you're running Win32.
 
 B<2.> For VC++ 6.0 or VC++ .NET do the following (others not tested):
 
+  > perl Makefile.PL
   > nmake
   > nmake test
   > nmake install
 
 B<3.> For bitmap support, copy I<FreeImage.dll> somewhere in your system path.
-You may get this library form I<http://sourceforge.net>. B<NOTE:> I<FreeImage>
-library is needed for the second test!
+You may get this library form I<http://sourceforge.net>.
 
-B<4.> For PDF support, install I<Ghostscript>. You may get this PostScript
-interpreter form I<http://sourceforge.net>. B<NOTE:> I<Ghostscript> is needed
-for the third test!
+B<4.> For PDF support, install I<Ghostscript> and set path to it's B<\bin>
+directory. You may get this PostScript interpreter form
+I<http://sourceforge.net>.
 
-B<5.> Enjoy it ;)
+B<5.> For Barcode support, install B<I<EBar>>. For information about obtaining
+B<I<EBar>> - visit I<http://www.wasx.net> or send me an e-mail to
+I<admin@wasx.net>.
+
+B<6.> Enjoy it ;)
 
 =head1 DESCRIPTION
 
@@ -1836,41 +2249,66 @@ B<L</End>> or B<L</Close>> methods or if an error occurs!
 The B<new> class method sets the following optional printer object and document
 parameters:
 
-=over
+=head3 collate
 
-=item * printer
+Specifies whether collation should be used when printing multiple copies. This
+member can be be one of the following values:
 
-If both B<printer> and B<dialog> attributes omitted- systems B<default printer>
-is used. Value of attribute is also used for B<dialog> initialisation.
+  0 - Do not collate when printing multiple copies. 
+  1 - Collate when printing multiple copies (default).
 
-Set printer's "friendly" name e.g. "HP LaserJet 8500" or network printer's UNC
-e.g. "\\\\server\\printer".
+Using B<collate> provides faster, more efficient output for collation, since
+the data is sent to the device driver just once, no matter how many copies are
+required. The printer is told to simply print the page again. If this flag is
+set to 1 and print dialog is used, the B<Collate> check box is initially
+checked.
 
-=item * dc
+B<$dc-E<gt>{collate}> variable shows if collation was required. You may use it
+after print dialog to check user input.
 
-If B<dc> is not zero or null- returns only device context without starting the
-document and new page.
+If B<$dc-E<gt>{collate}> is set to 0 - You need to handle multiple copies by
+yourself.
 
-=item * file
+See also L</copies>.
 
-Set B<file> attribute to save printer drivers output into the file specified by
-value of attribute. B<Note:> Specified file will not be overwritten- it's name
-will be changed to B<file_name(1)... file_name(n)> to avoid overwriting.
+=head3 color
 
-=item * pdf
+Switches between color and monochrome on color printers. Following are the
+possible values: 
 
-Set this attribute if You want to convert PostScript printer drivers output (see
-B<file> attribute) to PDF format. B<WARNING:> This feature needs installed
-I<Ghostscript> and atleast one PostScript printer driver. Use this attribute
-with B<file> attribute.
+  MONOCHROME 			= 1
+  COLOR				= 2
 
-Set attribute value to:
+=head3 copies
 
-   0	- ignore Ghostscript output;
-   1	- redirect Ghostscript output to STDOUT;
- other	- redirect Ghostscript output to log file;
+Initial number of document copies to print. Used by dialog and/or printer
+driver. B<$dc-E<gt>{collate}> variable shows how many copies were required.
 
-=item * dialog
+See also L</collate>.
+
+=head3 dc
+
+If B<dc> defined- returns only device context without starting the document and
+new page.
+
+=head3 debug*
+
+Set to:
+
+  0 - default;
+  1 - die on warnings;
+  2 - warn on errors (not recomended);
+
+If debug level set to 2- methods return undef value on error.
+
+See also L</Debug>.
+
+=head3 description
+
+Document description. Default is "Printer". It is used as document name,
+filename suggestion and/or PDF document title;
+
+=head3 dialog
 
 If both B<printer> and B<dialog> attributes omitted- systems B<default printer>
 is used.
@@ -1918,25 +2356,6 @@ B<Print> dialog box.
 Prevents the warning message from being displayed when there is no default
 printer.
 
-  USEDEVMODECOPIES		= 0x040000
-
-Same as USEDEVMODECOPIESANDCOLLATE
-
-  USEDEVMODECOPIESANDCOLLATE	= 0x040000
-
-This flag indicates whether your application supports multiple copies and
-collation. Set this flag on input to indicate that your application does not
-support multiple copies and collation. In this case, the B<$dc-E<gt>{copies}>
-member always returns 1, and B<$dc-E<gt>{collate}> member always returns 0. 
-If this flag is not set, the application is responsible for printing and
-collating multiple copies. In this case, the B<$dc-E<gt>{copies}> member indicates
-the number of copies the user wants to print, and the B<$dc-E<gt>{collate}> member
-indicates whether the user wants collation.
-If this flag is set and the printer driver does not support multiple copies, the
-B<Copies> edit control is disabled. Similarly, if this flag is set and the
-printer driver does not support collation, the B<Collate> checkbox is disabled.
-B<This feature may not work correctly with all printer drivers!>
-
   DISABLEPRINTTOFILE		= 0x080000
 
 Disables the B<Print to File> check box.
@@ -1949,32 +2368,53 @@ Hides the B<Print to File> check box.
 
 Hides and disables the B<Network> button.
 
-=item * minp
+=head3 duplex
 
-Minor page number in printer dialog (minimal possible value).
+Duplexing mode:
 
-=item * maxp
+  SIMPLEX			= 1
+  VERTICAL			= 2
+  HORIZONTAL			= 3
+
+=head3 file
+
+Set B<file> attribute to save printer drivers output into the file specified by
+value of attribute. B<Note:> Specified file will not be overwritten- it's name
+will be changed to B<file_name(1)... file_name(n)> to avoid overwriting.
+
+If the flag is set - End(), Abort() and Close() methods returns possibly
+modified file name.
+
+See also L</pdf>, L</prompt>, L</End>, L</Abort> and L</Close>.
+
+It is used as suggestion if used with B<prompt> or B<dialog>'s PRINTTOFILE.
+
+=head3 height
+
+Set specific page height (must be greater than tenth of milimetre).
+
+See also L</width>.
+
+=head3 maxp
 
 Major page number in printer dialog (maximal possible value).
 
-=item * orientation
+See also L</minp>.
 
-=item * copies
+=head3 minp
 
-Initial number of document copies to print.
-See also USEDEVMODECOPIESANDCOLLATE.
+Minor page number in printer dialog (minimal possible value).
 
-=item * collate
+See also L</maxp>.
 
-If this flag is set, the B<Collate> check box is checked.
-See also USEDEVMODECOPIESANDCOLLATE.
+=head3 orientation
 
 Page orientation (portrait by default).
 
   PORTRAIT			= 1
   LANDSCAPE			= 2
 
-=item * papersize
+=head3 papersize
 
 Defined paper sizes:
 
@@ -2047,19 +2487,40 @@ Defined paper sizes:
   A3_TRANSVERSE			= 67
   A3_EXTRA_TRANSVERSE		= 68
 
-=item * duplex
+=head3 pdf
 
-Duplexing mode:
+Set this attribute if You want to convert PostScript printer drivers output to
+PDF format. B<WARNING:> This feature needs installed I<Ghostscript> and atleast
+one PostScript printer driver. Use this attribute with B<file> or B<prompt>
+attribute.
 
-  SIMPLEX			= 1
-  VERTICAL			= 2
-  HORIZONTAL			= 3
+Set attribute value to:
 
-=item * description
+   0	- ignore Ghostscript messages;
+   1	- redirect Ghostscript messages to log file;
+ other	- redirect Ghostscript messages to STDERR;
 
-Document description. Default is "Printer".
+Used B<file> attribute "-" to generate pdf to STDOUT.
 
-=item * source
+See also L</file>, L</prompt>.
+
+=head3 printer
+
+If both B<printer> and B<dialog> attributes omitted- systems B<default printer>
+is used. Value of attribute is also used for B<dialog> initialisation.
+
+Set printer's "friendly" name e.g. "HP LaserJet 8500" or network printer's UNC
+e.g. "\\\\server\\printer" or "//server/printer".
+
+=head3 prompt
+
+If prompt attribute defined- prompts for print output filename and sets B<file>
+attribute. Behaves like B<file> attribute. Also sets B<dialog>'s PRINTTOFILE
+flag.
+
+See also L</file>, L</pdf>.
+
+=head3 source
 
 Specifies the paper source.
 
@@ -2077,15 +2538,7 @@ Specifies the paper source.
   BIN_CASSETTE			= 14
   BIN_FORMSOURCE		= 15
 
-=item * color
-
-Switches between color and monochrome on color printers. Following are the
-possible values: 
-
-  MONOCHROME 			= 1
-  COLOR				= 2
-
-=item * unit
+=head3 unit*
 
 Document units (inches by default).
 Specified unit is used for all coordinates and sizes, except for
@@ -2104,16 +2557,23 @@ Or unit ratio according to:
 
   Example: 2.5409836 cm = 1 in
 
-=back
+See also L</Unit>.
+
+=head3 width
+
+Set specific page width (must be greater than tenth of milimetre).
+
+See also L</height>.
 
 =head2 Abort
 
   $dc->Abort();
 
 The B<Abort> method stops the current print job and erases everything drawn
-since the last call to the B<L</Start>> method.
+since the last call to the B<L</Start>> method. Method returns possibly changed
+file name if B<file> attribute is set.
 
-See also L</Start>, L</Next> and L</End>.
+See also L</Start>, L</Next>, L</End> and L</file>.
 
 =head2 Arc
 
@@ -2138,6 +2598,63 @@ B<$start_angle, $end_angle2> sets the starting and ending angle of the arc
 according to the center of bounding rectangle. The current point is updated.
 
 See also L</Move>, L</Arc>, L</Ellipse>, L</Chord> and L</Pie>.
+
+=head2 EBar
+
+  $image = $dc->EBar($string, [$flags, [$nbw, [$bh, [$fonth]]]]);
+  ($image, $chk1, $chk2, $error) = $dc->EBar($string, [$flags, [$nbw, [$bh, [$fonth]]]]);
+
+The B<EBar> method creates barcode and returns handle to it's image. Use
+B<Close> method to unload it from memory. B<$string> to be encoded, B<$flags>
+see below, B<$nbw> - narrowest bar width, B<$bh> - bar height, B<$fonth> -
+handle to a font. B<$chk1> and B<$chk2> - returned check character, B<$error> -
+returned errorcode.
+
+  Flags:
+
+  EB_25MATRIX			= 0x00000001
+  EB_25INT			= 0x00000002
+  EB_25IND			= 0x00000004
+  EB_25IATA			= 0x00000008
+
+  EB_27				= 0x00000010
+
+  EB_39				= 0x00000020
+  EB_39EX			= 0x00000040
+  EB_39DUMB			= 0x00000080
+
+  EB_93				= 0x00000100
+
+  EB_128X			= 0x00000200
+  EB_128A			= 0x00000400
+  EB_128B			= 0x00000800
+  EB_128C			= 0x00001000
+  EB_128S			= 0x00002000
+  EB_128EAN			= 0x00004000
+
+  EB_EAN13			= 0x00008000
+  EB_UPCA			= 0x00010000
+  EB_EAN8			= 0x00020000
+  EB_UPCE			= 0x00040000
+  EB_ISBN			= 0x00080000
+  EB_ISBN2			= 0x00100000
+  EB_ISSN			= 0x00200000
+  EB_AD2			= 0x00400000
+  EB_AD5			= 0x00800000
+
+  EB_CHK			= 0x01000000
+  EB_TXT			= 0x02000000
+
+  Errorcodes (for debug level 2, otherwise would be dead by now):
+
+  0  - Success;
+  1  - Select barcode standard;
+  2  - Unsupported character in barcode string;
+  4  - Wrong barcode string size;
+  8  - GDI error;
+  16 - Memory allocation error;
+
+See also L</Image>, L</Close>.
 
 =head2 Bezier
 
@@ -2213,150 +2730,53 @@ device.
 B<$index> specifies the item to return. This parameter can be one of the
 following values:
 
-  DRIVERVERSION
+  DRIVERVERSION			= 0
 
 The device driver version.
 
-  HORZSIZE
+  HORZSIZE			= 4
 
 Width, in millimeters, of the physical screen.
 
-  VERTSIZE
+  VERTSIZE			= 6
 
 Height, in millimeters, of the physical screen.
 
-  HORZRES
+  HORZRES			= 8
 
 Width, in pixels, of the screen.
 
-  VERTRES
+  VERTRES			= 10
 
 Height, in raster lines, of the screen.
 
-  LOGPIXELSX
-
-Number of pixels per logical inch along the screen width.
-
-  LOGPIXELSY
-
-Number of pixels per logical inch along the screen height.
-
-  BITSPIXEL
+  BITSPIXEL			= 12
 
 Number of adjacent color bits for each pixel.
 
-  PLANES
+  PLANES			= 14
 
 Number of color planes.
 
-  NUMBRUSHES
+  NUMBRUSHES			= 16
 
 Number of device-specific brushes.
 
-  NUMPENS
+  NUMPENS			= 18
 
 Number of device-specific pens.
 
-  NUMFONTS
+  NUMFONTS			= 22
 
 Number of device-specific fonts.
 
-  NUMCOLORS
+  NUMCOLORS			= 24
 
 Number of entries in the device's color table, if the device has a color depth
 of no more than 8 bits per pixel. For devices with greater color depths, -1 is
 returned.
 
-  ASPECTX
-
-Relative width of a device pixel used for line drawing.
-
-  ASPECTY
-
-Relative height of a device pixel used for line drawing.
-
-  ASPECTXY
-
-Diagonal width of the device pixel used for line drawing.
-
-  CLIPCAPS
-
-Flag that indicates the clipping capabilities of the device. If the device can
-clip to a rectangle, it is 1. Otherwise, it is 0.
-
-  SIZEPALETTE
-
-Number of entries in the system palette. This index is valid only if the device
-driver sets the RC_PALETTE bit in the RASTERCAPS index and is available only if
-the driver is compatible with 16-bit Windows.
-
-  NUMRESERVED
-
-Number of reserved entries in the system palette. This index is valid only if
-the device driver sets the RC_PALETTE bit in the RASTERCAPS index and is
-available only if the driver is compatible with 16-bit Windows.
-
-  COLORRES
-
-Actual color resolution of the device, in bits per pixel. This index is valid
-only if the device driver sets the RC_PALETTE bit in the RASTERCAPS index and
-is available only if the driver is compatible with 16-bit Windows.
-
-  PHYSICALWIDTH
-
-For printing devices: the width of the physical page, in device units. For
-example, a printer set to print at 600 dpi on 8.5"x11" paper has a physical
-width value of 5100 device units. Note that the physical page is almost always
-greater than the printable area of the page, and never smaller.
-
-  PHYSICALHEIGHT
-
-For printing devices: the height of the physical page, in device units. For
-example, a printer set to print at 600 dpi on 8.5"x11" paper has a physical
-height value of 6600 device units. Note that the physical page is almost always
-greater than the printable area of the page, and never smaller.
-
-  PHYSICALOFFSETX
-
-For printing devices: the distance from the left edge of the physical page to
-the left edge of the printable area, in device units. For example, a printer
-set to print at 600 dpi on 8.5"x11" paper, that cannot print on the leftmost
-0.25" of paper, has a horizontal physical offset of 150 device units.
-
-  PHYSICALOFFSETY
-
-For printing devices: the distance from the top edge of the physical page to the
-top edge of the printable area, in device units. For example, a printer set to
-print at 600 dpi on 8.5"x11" paper, that cannot print on the topmost 0.5" of
-paper, has a vertical physical offset of 300 device units.
-
-  SCALINGFACTORX
-
-Scaling factor for the x-axis of the printer.
-
-  SCALINGFACTORY
-
-Scaling factor for the y-axis of the printer. 
-
-  RASTERCAPS
-
-Value that indicates the raster capabilities of the device, as shown in the
-following table:
-
-    0x0001	Capable of transferring bitmaps.
-    0x0002	Requires banding support.
-    0x0004	Capable of scaling.
-    0x0008	Capable of supporting bitmaps larger than 64K.
-    0x0010	Capable of supporting features of 16-bit Windows 2.0.
-    0x0080	Capable of supporting the SetDIBits and GetDIBits functions
-		(Win API).
-    0x0100	Specifies a palette-based device.
-    0x0200	Capable of supporting the SetDIBitsToDevice function (Win API).
-    0x0800	Capable of performing the StretchBlt function (Win API).
-    0x1000	Capable of performing flood fills.
-    0x2000	Capable of performing the StretchDIBits function (Win API).
-
-  CURVECAPS
+  CURVECAPS			= 28
 
 Value that indicates the curve capabilities of the device, as shown in the
 following table:
@@ -2371,8 +2791,9 @@ following table:
     64		Device can draw borders that are wide and styled.
     128		Device can draw interiors.
     256		Device can draw rounded rectangles.
+-
 
-  LINECAPS
+  LINECAPS			= 30
 
 Value that indicates the line capabilities of the device, as shown in the
 following table:
@@ -2385,8 +2806,9 @@ following table:
     32		Device can draw styled lines.
     64		Device can draw lines that are wide and styled.
     128		Device can draw interiors.
+_
 
-  POLYGONALCAPS
+  POLYGONALCAPS			= 32
 
 Value that indicates the polygon capabilities of the device, as shown in the
 following table:
@@ -2400,8 +2822,9 @@ following table:
     32		Device can draw styled borders.
     64		Device can draw borders that are wide and styled.
     128		Device can draw interiors.
+-
 
-  TEXTCAPS
+  TEXTCAPS			= 34
 
 Value that indicates the text capabilities of the device, as shown in the
 following table:
@@ -2421,6 +2844,105 @@ following table:
     0x1000	Device can draw strikeouts.
     0x2000	Device can draw raster fonts.
     0x4000	Device can draw vector fonts.
+_
+
+  CLIPCAPS			= 36
+
+Flag that indicates the clipping capabilities of the device. If the device can
+clip to a rectangle, it is 1. Otherwise, it is 0.
+
+  RASTERCAPS			= 38
+
+Value that indicates the raster capabilities of the device, as shown in the
+following table:
+
+    0x0001	Capable of transferring bitmaps.
+    0x0002	Requires banding support.
+    0x0004	Capable of scaling.
+    0x0008	Capable of supporting bitmaps larger than 64K.
+    0x0010	Capable of supporting features of 16-bit Windows 2.0.
+    0x0080	Capable of supporting the SetDIBits and GetDIBits functions
+		(Win API).
+    0x0100	Specifies a palette-based device.
+    0x0200	Capable of supporting the SetDIBitsToDevice function (Win API).
+    0x0800	Capable of performing the StretchBlt function (Win API).
+    0x1000	Capable of performing flood fills.
+    0x2000	Capable of performing the StretchDIBits function (Win API).
+-
+
+  ASPECTX			= 40
+
+Relative width of a device pixel used for line drawing.
+
+  ASPECTY			= 42
+
+Relative height of a device pixel used for line drawing.
+
+  ASPECTXY			= 44
+
+Diagonal width of the device pixel used for line drawing.
+
+  LOGPIXELSX			= 88
+
+Number of pixels per logical inch along the screen width.
+
+  LOGPIXELSY			= 90
+
+Number of pixels per logical inch along the screen height.
+
+  SIZEPALETTE			= 104
+
+Number of entries in the system palette. This index is valid only if the device
+driver sets the RC_PALETTE bit in the RASTERCAPS index and is available only if
+the driver is compatible with 16-bit Windows.
+
+  NUMRESERVED			= 106
+
+Number of reserved entries in the system palette. This index is valid only if
+the device driver sets the RC_PALETTE bit in the RASTERCAPS index and is
+available only if the driver is compatible with 16-bit Windows.
+
+  COLORRES			= 108
+
+Actual color resolution of the device, in bits per pixel. This index is valid
+only if the device driver sets the RC_PALETTE bit in the RASTERCAPS index and
+is available only if the driver is compatible with 16-bit Windows.
+
+  PHYSICALWIDTH			= 110
+
+For printing devices: the width of the physical page, in device units. For
+example, a printer set to print at 600 dpi on 8.5"x11" paper has a physical
+width value of 5100 device units. Note that the physical page is almost always
+greater than the printable area of the page, and never smaller.
+
+  PHYSICALHEIGHT		= 111
+
+For printing devices: the height of the physical page, in device units. For
+example, a printer set to print at 600 dpi on 8.5"x11" paper has a physical
+height value of 6600 device units. Note that the physical page is almost always
+greater than the printable area of the page, and never smaller.
+
+  PHYSICALOFFSETX		= 112
+
+For printing devices: the distance from the left edge of the physical page to
+the left edge of the printable area, in device units. For example, a printer
+set to print at 600 dpi on 8.5"x11" paper, that cannot print on the leftmost
+0.25" of paper, has a horizontal physical offset of 150 device units.
+
+  PHYSICALOFFSETY		= 113
+
+For printing devices: the distance from the top edge of the physical page to the
+top edge of the printable area, in device units. For example, a printer set to
+print at 600 dpi on 8.5"x11" paper, that cannot print on the topmost 0.5" of
+paper, has a vertical physical offset of 300 device units.
+
+  SCALINGFACTORX		= 114
+
+Scaling factor for the x-axis of the printer.
+
+  SCALINGFACTORY		= 115
+
+Scaling factor for the y-axis of the printer. 
 
 See also L</new>.
 
@@ -2443,11 +2965,12 @@ See also L</Ellipse>, L</Pie>, L</Arc> and L</ArcTo>.
   $dc->Close([$image_handle_or_path]);
 
 The B<Close> method finishes current print job, closes all open handles and
-frees memory.
+frees memory. Method returns possibly changed file name if B<file> attribute is
+set.
 
 If optional image handle or path is provided-  closes only that image!
 
-See also L</new> and L</Image>.
+See also L</new>, L</Image>, L</EBar> and L</file>.
 
 =head2 Color
 
@@ -2456,6 +2979,20 @@ See also L</new> and L</Image>.
 The B<Color> method sets the text color to the specified color.
 
 See also L</Write> and L</Font>.
+
+=head2 Debug
+
+  $dc->Debug($debuglevel);
+
+The B<Debug> method changes debug level from now on. Possible values:
+
+  0 - default;
+  1 - die on warnings;
+  2 - warn on errors (not recomended);
+
+If debug level set to 2- methods return undef value on error.
+
+See also L</debug*>.
 
 =head2 Ellipse
 
@@ -2473,9 +3010,10 @@ See also L</Pie>, L</Chord>, L</Arc> and L</ArcTo>.
 
   $dc->End();
 
-The B<End> method finishes a current print job.
+The B<End> method finishes a current print job. Method returns possibly changed
+file name if B<file> attribute is set.
 
-See also L</Start>, L</Next>, L</Abort> and L</Page>.
+See also L</Start>, L</Next>, L</Abort>, L</Page> and L</file>.
 
 =head2 Fill
 
@@ -2564,12 +3102,12 @@ In array context also returns original image width an d height B<$original_width
 
 Natively it supports B<EMF> and B<WMF> format files.
 B<BMP, CUT, ICO, JPEG, JNG, KOALA, LBM, IFF, MNG, PBM, PBMRAW, PCD, PCX, PGM,
-PGMRAW, PNG, PPM, PPMRAW, PSD, RAS, TARGA, TIFF, WBMP> bitmap formats are
+PGMRAW, PNG, PPM, PPMRAW, PSD, RAS, TARGA, TIFF, WBMP, XBM, XPM> bitmap formats are
 handled via L<FreeImage library|/INSTALLATION>.
 After usage, you should use B<L</Close>> to unload image from memory and destroy
 a handle.
 
-See also L</Close>.
+See also L</Close> and L</EBar>.
 
 =head2 Line
 
@@ -2591,7 +3129,7 @@ See also L</Line>.
 
 =head2 Move
 
-  $dc->Move();
+  $dc->Move($x, $y);
 
 The B<Move> method updates the current position to the specified point.
 
@@ -2650,22 +3188,22 @@ current clipping region and the current path.
 
   CR_OR				= 2
 
-The new clipping region is the current path.
+The new clipping region includes the union (combined areas) of the current
+clipping region and the current path.
 
   CR_XOR			= 3
+
+The new clipping region includes the union of the current clipping region and
+the current path but without the overlapping areas.
+
+  CR_DIFF			= 4
 
 The new clipping region includes the areas of the current clipping region with
 those of the current path excluded.
 
-  CR_DIFF			= 4
-
-The new clipping region includes the union (combined areas) of the current
-clipping region and the current path.
-
   CR_COPY			= 5
 
-The new clipping region includes the union of the current clipping region and
-the current path but without the overlapping areas.
+The new clipping region is the current path.
 
 See also L</PBegin>, L</PDraw>, L</PEnd> and L</PAbort>.
 
@@ -2856,6 +3394,8 @@ Or unit ratio according to:
 
   Example: 2.5409836 cm = 1 in
 
+See also L</unit*>.
+
 =head2 Write
 
   # String mode (SM):
@@ -3022,22 +3562,22 @@ L<Win32::Printer::Enum>, Win32 Platform SDK GDI documentation.
 
 =head1 AUTHOR
 
-B<Edgars Binans>, I<admin@wasx.net>. I<http://www.wasx.net>
+B<Edgars Binans E<lt>admin@wasx.netE<gt>. http://www.wasx.net>
 
 =head1 COPYRIGHT AND LICENSE
 
-This library may use I<FreeImage> 2.5.4, a free, open source image library
+This library may use I<FreeImage>, a free, open source image library
 supporting all common bitmap formats. Get your free copy from 
-L<http://sourceforge.net>. I<FreeImage> is licensed under terms of B<GNU GPL>.
+L<http://sourceforge.net>. I<FreeImage> is licensed under the terms of
+B<GNU GPL>.
 
 This library may use I<Ghostscript> for PDF support. I<GNU Ghostscript> is
-licensed under terms of B<GNU GPL>. I<AFPL Ghostscript> is licensed under terms
-of B<Aladdin Free Public License>. Download I<Ghostscript> from
+licensed under terms of B<GNU GPL>. I<AFPL Ghostscript> is licensed under the
+terms of B<Aladdin Free Public License>. Download I<Ghostscript> from
 L<http://sourceforge.net>.
 
-B<Win32::Printer, Copyright (C) 2003 Edgars Binans E<lt>I<admin@wasx.net>E<gt>>.
-Website: L<http://www.wasx.net>.
+B<Win32::Printer, Copyright (C) 2003 Edgars Binans.>
 
-B<THIS LIBRARY IS FREE FOR NON-COMMERCIAL USE!!!>
+B<THIS LIBRARY IS LICENSED UNDER THE TERMS OF GNU LESSER GENERAL PUBLIC LICENSE>
 
 =cut

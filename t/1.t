@@ -3,7 +3,7 @@
 # Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            #
 #------------------------------------------------------------------------------#
 
-use Test::Simple tests => 46;
+use Test::Simple tests => 47;
 
 use strict;
 use warnings;
@@ -14,14 +14,16 @@ use Win32::Printer::Enum qw( Drivers Ports Monitors Processors Types Jobs );
 
 #------------------------------------------------------------------------------#
 
-my $dc = new Win32::Printer( file => "t\\tmp\\test.prn" );
+my $dc = new Win32::Printer( file => "t/tmp/test.prn" );
 
 ok ( defined($dc), 'new()' );
+
+ok ( $dc->Debug(0) == 1, 'Debug()' );
 
 ok ( defined($dc->Caps(DRIVERVERSION)), 'Caps()' );
 ok ( $dc->Unit('in') == 1, 'Unit()' );
 
-ok ( $dc->Abort() == 1, 'Abort()' );
+ok ( defined($dc->Abort()), 'Abort()' );
 ok ( $dc->Start("Test 1") == 1, 'Start()' );
 
 ok ( $dc->Brush(0, 128, 0) == 1, 'Brush()' );
@@ -60,7 +62,7 @@ ok ( $dc->Page() == 1, 'Page()' );
 
 ok ( $dc->PBegin() == 1, 'PBegin()' );
 $dc->Ellipse(1, 6, 6, 2);
-ok ( $dc->PEnd() == 1, 'PEnd()' );
+ok ( defined($dc->PEnd()), 'PEnd()' );
 ok ( $dc->PClip(CR_AND) == 1, 'PClip()' );
 
 $dc->PBegin();
@@ -73,9 +75,9 @@ $dc->PBegin();
 ok ( $dc->PAbort() == 1, 'PAbort()' );
 
 ok ( $dc->Next("Test 2") == 1, 'Next()' );
-ok ( $dc->End() == 1, 'End()' );
+ok ( defined($dc->End()), 'End()' );
 
-ok ( $dc->Close() == 1, 'Close()' );
+ok ( defined($dc->Close()), 'Close()' );
 
 #------------------------------------------------------------------------------#
 
@@ -89,3 +91,5 @@ my @printer = Printers();
 ok ( defined(Jobs($printer[0]{PrinterName}, 0, 1)), 'Jobs()');
 
 #------------------------------------------------------------------------------#
+
+unlink <t/tmp/*.*>;

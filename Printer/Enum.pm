@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------#
 # Win32::Printer::Enum                                                         #
-# V 0.0.2 (2003-11-03)                                                         #
+# V 0.0.3 (2004-01-07)                                                         #
 # Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            #
 # http://www.wasx.net                                                          #
 #------------------------------------------------------------------------------#
@@ -17,7 +17,7 @@ require Exporter;
 
 use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD );
 
-$VERSION = '0.0.2';
+$VERSION = '0.0.3';
 
 @ISA = qw( Exporter );
 
@@ -134,6 +134,8 @@ sub Drivers {
       $return[$i]{MonitorName},
       $return[$i]{DefaultDataType}
     ) = split(/\t/, $lines[$i]);
+    my @depfiles = split(/\*/, $return[$i]{DependentFiles});
+    $return[$i]{DependentFiles} = \@depfiles;
   }
 
   return wantarray ? @return : $return;
@@ -592,9 +594,7 @@ B<Return keys in table order:>
            the device driver's help file.
 
  {DependentFiles}
-                 String that specifies the files the driver is dependent on
-                 (for example,
-                 "PSCRIPT.DLL;PSCRPTUI.DLL;PSPCRIPTUI.HLP;PSTEST.TXT"). 
+                 Array that specifies the files the driver is dependent on.
 
  {MonitorName}
               String that specifies a language monitor (for example, "PJL
@@ -678,13 +678,12 @@ L<Win32::Printer>, Win32 Platform SDK GDI documentation.
 
 =head1 AUTHOR
 
-B<Edgars Binans>, I<admin@wasx.net>. I<http://www.wasx.net>
+B<Edgars Binans E<lt>admin@wasx.netE<gt>. http://www.wasx.net>
 
 =head1 COPYRIGHT AND LICENSE
 
-B<Win32::Printer, Copyright (C) 2003 Edgars Binans E<lt>I<admin@wasx.net>E<gt>>.
-Website: L<http://www.wasx.net>.
+B<Win32::Printer, Copyright (C) 2003 Edgars Binans.>
 
-B<THIS LIBRARY IS FREE FOR NON-COMMERCIAL USE!!!>
+B<THIS LIBRARY IS LICENSED UNDER THE TERMS OF GNU LESSER GENERAL PUBLIC LICENSE>
 
 =cut

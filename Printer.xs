@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------------*\
 | Win32::Printer                                                               |
-| V 0.6.6.1 (2003-11-03)                                                       |
+| V 0.7.0 (2004-01-07)                                                         |
 | Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            |
 | http://www.wasx.net                                                          |
 \*----------------------------------------------------------------------------*/
@@ -9,14 +9,31 @@
 #include "perl.h"
 #include "XSUB.h"
 
+#ifdef EBAR
+#include "EBar.h"
+#endif
+
+#ifdef FREE
+#include "FreeImage.h"
+#endif
+
+#ifdef GHOST
+#include "iapi.h"
+#endif
+
 #include <winspool.h>
 #include <commdlg.h>
+
+LONG exfilt ()
+{
+  return EXCEPTION_EXECUTE_HANDLER;
+}
 
 MODULE = Win32::Printer         PACKAGE = Win32::Printer
 
 PROTOTYPES: DISABLE
 
-char*
+LPTSTR 
 _GetLastError()
     PREINIT:
       char msg[255];
@@ -26,8 +43,24 @@ _GetLastError()
     OUTPUT:
       RETVAL
 
+unsigned int
+_Get3PLibs()
+    CODE:
+      RETVAL  = 0x00000000;
+#ifdef FREE
+      RETVAL |= 0x00000001;
+#endif
+#ifdef GHOST
+      RETVAL |= 0x00000002;
+#endif
+#ifdef EBAR
+      RETVAL |= 0x00000004;
+#endif
+    OUTPUT:
+      RETVAL
+
 HDC
-_CreatePrinter(printer, dialog, Flags, copies, collate, minp, maxp, orient, papersize, duplex, source, color)
+_CreatePrinter(printer, dialog, Flags, copies, collate, minp, maxp, orient, papersize, duplex, source, color, height, width)
       LPTSTR printer;
       BOOL dialog;
       int Flags;
@@ -40,6 +73,8 @@ _CreatePrinter(printer, dialog, Flags, copies, collate, minp, maxp, orient, pape
       int duplex;
       int source;
       int color;
+      int height;
+      int width;
     PREINIT:
       DWORD error;
       PRINTDLG *lppd;
@@ -48,24 +83,33 @@ _CreatePrinter(printer, dialog, Flags, copies, collate, minp, maxp, orient, pape
       LPTSTR pPrinterName;
       int printlen;
       HGLOBAL newDevNames;
-      char *dnch;
-      char *winspool = "winspool";
+      LPTSTR dnch;
+      LPTSTR winspool = "winspool";
     CODE:
       RETVAL = (HDC) NULL;
       Newz(0, lppd, 1, PRINTDLG);
       lppd->lStructSize = sizeof(PRINTDLG);
       lppd->Flags = PD_RETURNDEFAULT;
-      lppd->nFromPage = minp;
-      lppd->nToPage = maxp;
-      lppd->nMinPage = minp;
-      lppd->nMaxPage = maxp;
-      lppd->nCopies = 1;
       if (PrintDlg(lppd)) {
          lpdm = GlobalLock(lppd->hDevMode);
-         lpdm->dmFields |= DM_PAPERSIZE | DM_ORIENTATION | DM_DUPLEX | DM_COPIES | DM_COLLATE | DM_DEFAULTSOURCE | DM_COLOR;
-         lpdm->dmOrientation = orient;
-         lpdm->dmPaperSize = papersize;
-         lpdm->dmDuplex = duplex;
+         if (height > 0 && width > 0) {
+            lpdm->dmFields |= DM_PAPERLENGTH;
+            lpdm->dmFields |= DM_PAPERWIDTH;
+            lpdm->dmPaperLength = height;
+            lpdm->dmPaperWidth = width;
+         } else {
+            lpdm->dmFields |= DM_PAPERSIZE;
+            lpdm->dmPaperSize = papersize;
+         }
+         if (orient == 1 || orient == 2) {
+            lpdm->dmFields |= DM_ORIENTATION;
+            lpdm->dmOrientation = orient;
+         }
+         if (duplex == 1 || duplex == 2 || duplex == 3) {
+            lpdm->dmFields |= DM_DUPLEX;
+            lpdm->dmDuplex = duplex;
+         }
+         lpdm->dmFields |= DM_COPIES | DM_COLLATE | DM_DEFAULTSOURCE | DM_COLOR;
          lpdm->dmCopies = copies;
          lpdm->dmCollate = collate;
          lpdm->dmDefaultSource = source;
@@ -76,18 +120,22 @@ _CreatePrinter(printer, dialog, Flags, copies, collate, minp, maxp, orient, pape
                RETVAL = CreateDC("winspool", printer, NULL, lpdm);
             } else {
                New(0, pPrinterName, lpdn->wOutputOffset - lpdn->wDeviceOffset, char);
-               Copy((char*)lpdn + lpdn->wDeviceOffset, pPrinterName, lpdn->wOutputOffset - lpdn->wDeviceOffset, char);
+               Copy((LPTSTR )lpdn + lpdn->wDeviceOffset, pPrinterName, lpdn->wOutputOffset - lpdn->wDeviceOffset, char);
                RETVAL = CreateDC("winspool", pPrinterName, NULL, lpdm);
                Safefree(pPrinterName);
             }
          } else {
+            lppd->nFromPage = minp;
+            lppd->nToPage = maxp;
+            lppd->nMinPage = minp;
+            lppd->nMaxPage = maxp;
             printlen = strlen(printer) < 32 ? (strlen(printer) + 1) : 32;
             newDevNames = GlobalAlloc(GMEM_MOVEABLE, 17 + printlen);
             dnch = GlobalLock(newDevNames);
             Copy(winspool, dnch + 8, 9, char);
             Copy(printer, dnch + 17, printlen, char);
             dnch[17 + printlen] = '\0';
-            lpdn = (DEVNAMES*)dnch;
+            lpdn = (DEVNAMES *)dnch;
             lpdn->wDriverOffset = 8;
             lpdn->wDeviceOffset = 17;
             lpdn->wOutputOffset = 17 + printlen;
@@ -96,17 +144,10 @@ _CreatePrinter(printer, dialog, Flags, copies, collate, minp, maxp, orient, pape
             Copy(printer, lpdm->dmDeviceName, printlen, char);
             lppd->Flags = PD_RETURNDC | Flags;
             if (PrintDlg(lppd)) {
-               if (Flags & PD_USEDEVMODECOPIESANDCOLLATE) {
-                  copies = 1;
-                  collate = 0;
-               } else {
-                  copies = lpdm->dmCopies;
-                  collate = lpdm->dmCollate;
-                  lpdm->dmCopies = 1;
-                  lpdm->dmCollate = 0;
-               }
                RETVAL = lppd->hDC;
                Flags = lppd->Flags;
+               copies = lpdm->dmCopies;
+               collate = lpdm->dmCollate;
                minp = lppd->nFromPage;
                maxp = lppd->nToPage;
             }
@@ -135,6 +176,102 @@ _CreatePrinter(printer, dialog, Flags, copies, collate, minp, maxp, orient, pape
       collate
       minp
       maxp
+      RETVAL
+
+LPCTSTR
+_SaveAs(index, suggest, indir)
+      int index;
+      LPTSTR suggest;
+      LPCTSTR indir;
+    PREINIT:
+      OPENFILENAME ofn;
+    CODE:
+      char file[MAX_PATH];
+      char filter[] = "Print files (*.prn, *.ps, *.pcl, *.afp) *.prn;*.ps;*.pcl;*.afp PDF files (*.pdf) *.pdf All files (*.*) *.* ";
+      filter[39] = '\0'; filter[62] = '\0'; filter[80] = '\0'; filter[86] = '\0'; filter[102] = '\0'; filter[106] = '\0';
+      file[0] = '\0';
+      ofn.lStructSize = sizeof(OPENFILENAME);
+      ofn.hwndOwner = NULL;
+      ofn.lpstrFilter = filter;
+      ofn.lpstrCustomFilter = NULL;
+      ofn.nFilterIndex = index;
+      strcpy(file, suggest);
+      ofn.lpstrFile = file;
+      ofn.nMaxFile = MAX_PATH;
+      ofn.lpstrFileTitle = NULL;
+      if (indir == "") {
+         ofn.lpstrInitialDir = NULL;
+      } else {
+         ofn.lpstrInitialDir = indir;
+      }
+      ofn.lpstrTitle = "Win32::Printer - Save As";
+      ofn.Flags = OFN_NOCHANGEDIR|OFN_EXPLORER;
+      if (index == 2) {
+         ofn.lpstrDefExt = "pdf";
+      } else {
+         ofn.lpstrDefExt = "prn";
+      }
+      if (GetSaveFileName(&ofn)) {
+         RETVAL = ofn.lpstrFile;
+      } else {
+         if (CommDlgExtendedError()) {
+            croak("Save As dialog error!\n");
+         } else {
+            SetLastError(ERROR_CANCELLED);
+         }
+         RETVAL = "";
+      }
+    OUTPUT:
+      RETVAL
+
+LPCTSTR
+_Open(index, multi)
+      int index;
+      int multi;
+    PREINIT:
+      OPENFILENAME ofn;
+      char file[65535];
+    CODE:
+      int x = 0;
+      char filter[] = "Print files (*.prn, *.ps, *.pcl, *.afp) *.prn;*.ps;*.pcl;*.afp PDF files (*.pdf) *.pdf All files (*.*) *.* ";
+      filter[39] = '\0'; filter[62] = '\0'; filter[80] = '\0'; filter[86] = '\0'; filter[102] = '\0'; filter[106] = '\0';
+      file[0] = '\0';
+      ofn.lStructSize = sizeof(OPENFILENAME);
+      ofn.hwndOwner = NULL;
+      ofn.lpstrFilter = filter;
+      ofn.lpstrCustomFilter = NULL;
+      ofn.nFilterIndex = index;
+      file[0] = '\0';
+      ofn.lpstrFile = file;
+      ofn.nMaxFile = 65535;
+      ofn.lpstrFileTitle = NULL;
+      ofn.lpstrInitialDir = NULL;
+      ofn.lpstrTitle = "Win32::Printer - Open";
+      ofn.Flags = OFN_NOCHANGEDIR|OFN_EXPLORER;
+      if (multi == 1) {
+         ofn.Flags |= OFN_ALLOWMULTISELECT;
+      }
+      if (GetOpenFileName(&ofn)) {
+         if (multi == 1) {
+            while (1) {
+               if ((ofn.lpstrFile[x] == '\0') && (ofn.lpstrFile[x + 1] != '\0')) {
+                  ofn.lpstrFile[x] = 42;
+               } else if ((ofn.lpstrFile[x] == '\0') && (ofn.lpstrFile[x + 1] == '\0')) {
+                  break;
+               }
+               x++;
+            }
+         }
+         RETVAL = ofn.lpstrFile;
+      } else {
+         if (CommDlgExtendedError()) {
+            croak("Open dialog error!\n");
+         } else {
+            SetLastError(ERROR_CANCELLED);
+         }
+         RETVAL = "";
+      }
+    OUTPUT:
       RETVAL
 
 BOOL
@@ -424,7 +561,7 @@ _PolylineTo(hdc, ...)
          lpPoints[j].y = SvIV(ST(i));
          i++; j++;
       }
-      RETVAL = PolylineTo(hdc, lpPoints, (items-1) / 2);
+      RETVAL = PolylineTo(hdc, lpPoints, (items - 1) / 2);
       Safefree(lpPoints);
     OUTPUT:
       RETVAL
@@ -674,7 +811,8 @@ _GetWinMetaFile(hdc, lpszMetaFile)
          DWORD     reserved;
          WORD      checksum;
       } METAFILE_HEADER, *PMETAFILE_HEADER;
-      HENHMETAFILE hemf;
+      HMETAFILE hmf;
+      HENHMETAFILE hemf = NULL;
       LPVOID mfb;
       BYTE *Data;
       PerlIO *file;
@@ -684,12 +822,12 @@ _GetWinMetaFile(hdc, lpszMetaFile)
       LPCTSTR lpPathName = PerlEnv_get_childdir();
     CODE:
       SetCurrentDirectory(lpPathName);
-      hemf = GetMetaFile(lpszMetaFile);
+      hmf = GetMetaFile(lpszMetaFile);
       mfp.mm = MM_ANISOTROPIC;
       mfp.xExt = -1;
       mfp.yExt = -1;
       mfp.hMF  = NULL;
-      if (hemf == NULL) {
+      if (hmf == NULL) {
          file = PerlIO_open(lpszMetaFile, "rb");
          if (file != NULL) {
             PerlIO_read(file, &MfHdr, sizeof(METAFILE_HEADER));
@@ -700,15 +838,15 @@ _GetWinMetaFile(hdc, lpszMetaFile)
             New(0, Data, nSize, BYTE);
             PerlIO_seek(file, 22, 0);
             PerlIO_read(file, Data, nSize);
-            hemf = SetMetaFileBitsEx(nSize, Data);
+            hmf = SetMetaFileBitsEx(nSize, Data);
             Safefree(Data);
             PerlIO_close(file);
          }
       }
-      if (hemf != NULL) {
-         nSize = GetMetaFileBitsEx(hemf, NULL, NULL);
+      if (hmf != NULL) {
+         nSize = GetMetaFileBitsEx(hmf, NULL, NULL);
          New(0, mfb, nSize, LPVOID);
-         nSize = GetMetaFileBitsEx(hemf, nSize, mfb);
+         nSize = GetMetaFileBitsEx(hmf, nSize, mfb);
          hemf = SetWinMetaFileBits(nSize, mfb, hdc, &mfp);
          Safefree(mfb);
       }
@@ -717,11 +855,57 @@ _GetWinMetaFile(hdc, lpszMetaFile)
       RETVAL
 
 HENHMETAFILE
+_EBar(hdc, string, nbw, bh, flags, chk1, chk2, hfont, error)
+      HDC hdc;
+      LPTSTR string;
+      unsigned int nbw;
+      unsigned int bh;
+      int flags;
+      char chk1;
+      char chk2;
+      HFONT hfont;
+      int error;
+    PREINIT:
+#ifdef EBAR
+      ebc_t ebc;
+#endif
+    CODE:
+      RETVAL = NULL;
+#ifdef EBAR
+      ebc.hdc = hdc;
+      ebc.nbw = nbw;
+      ebc.bh = bh;
+      ebc.flags = flags;
+      ebc.hfont = hfont;
+      if (!hfont) {
+         ebc.font = NULL;
+         ebc.size = - (8 * GetDeviceCaps(hdc, LOGPIXELSY)) / 72;
+         ebc.weight = FW_NORMAL;
+      }
+      __try {
+         RETVAL = EBar(&ebc, string);
+         chk1 = ebc.chk1;
+         chk2 = ebc.chk2;
+         error = ebc.error;
+      }
+      __except (exfilt()) {
+         error = 32;
+      }
+#else
+      croak("EBar is not supported in this build!");
+#endif
+    OUTPUT:
+      chk1
+      chk2
+      error
+      RETVAL
+
+HENHMETAFILE
 _GetEnhMetaFile(lpszMetaFile)
       LPCTSTR lpszMetaFile;
     PREINIT:
       HENHMETAFILE hemf;
-      char *dir = PerlEnv_get_childdir();
+      LPTSTR dir = PerlEnv_get_childdir();
     CODE:
       SetCurrentDirectory(dir);
       hemf = GetEnhMetaFile(lpszMetaFile);
@@ -735,51 +919,45 @@ _LoadBitmap(hdc, BmpFile, Type);
       LPCTSTR BmpFile;
       int Type;
     PREINIT:
-      char *dir = PerlEnv_get_childdir();
-      int Image;
+#ifdef FREE
+      LPTSTR dir = PerlEnv_get_childdir();
+      FIBITMAP *Image;
       BITMAPINFO *lpbmi;
-      HMODULE hFreeImage = NULL;
-      PROC fnFreeImage_Load = NULL;
-      PROC fnFreeImage_GetFileType = NULL;
-      PROC fnFreeImage_Unload = NULL;
-      PROC fnFreeImage_GetInfo = NULL;
-      PROC fnFreeImage_GetBits = NULL;
       double resolutionX = 72;
       double resolutionY = 72;
+#endif
     CODE:
       RETVAL = NULL;
-      hFreeImage = LoadLibrary("FreeImage.dll");
-      if (hFreeImage) {
-         fnFreeImage_Load = GetProcAddress(hFreeImage, "_FreeImage_Load@12");
-         fnFreeImage_GetFileType = GetProcAddress(hFreeImage, "_FreeImage_GetFileType@8");
-         fnFreeImage_GetInfo = GetProcAddress(hFreeImage, "_FreeImage_GetInfo@4");
-         fnFreeImage_GetBits = GetProcAddress(hFreeImage, "_FreeImage_GetBits@4");
-         fnFreeImage_Unload = GetProcAddress(hFreeImage, "_FreeImage_Unload@4");
-         if (fnFreeImage_Load && fnFreeImage_GetFileType && fnFreeImage_GetInfo && fnFreeImage_GetBits && fnFreeImage_Unload) {
-            SetCurrentDirectory(dir);
-            if (Type == -1) {
-               Image = fnFreeImage_Load(fnFreeImage_GetFileType(BmpFile, 16), BmpFile, 0);
-            } else {
-               Image = fnFreeImage_Load(Type, BmpFile, 0);
-            }
-            if (Image) {
-               lpbmi = (BITMAPINFO *) fnFreeImage_GetInfo(Image);
-               hdc = CreateEnhMetaFile(hdc, (LPCTSTR) NULL, NULL, (LPCTSTR) NULL);
-               if (lpbmi->bmiHeader.biXPelsPerMeter && lpbmi->bmiHeader.biYPelsPerMeter) {
-                  resolutionX = lpbmi->bmiHeader.biXPelsPerMeter / 39.35483881;
-                  resolutionY = lpbmi->bmiHeader.biYPelsPerMeter / 39.35483881;
-               }
-               StretchDIBits(hdc, 0, 0, (int)(GetDeviceCaps(hdc, LOGPIXELSX) * lpbmi->bmiHeader.biWidth / resolutionX), (int)(GetDeviceCaps(hdc, LOGPIXELSY) * lpbmi->bmiHeader.biHeight / resolutionY), 0, 0, lpbmi->bmiHeader.biWidth, lpbmi->bmiHeader.biHeight, (CONST VOID *) fnFreeImage_GetBits(Image), lpbmi, DIB_RGB_COLORS, SRCCOPY);
-               RETVAL = CloseEnhMetaFile(hdc);
-               fnFreeImage_Unload(Image);
-            } else {
-               if (!GetLastError()) {
-                  SetLastError(ERROR_INVALID_DATA);
-               }
-            }
+#ifdef FREE
+      SetCurrentDirectory(dir);
+      __try {
+         if (Type == -1) {
+            Image = FreeImage_Load(FreeImage_GetFileType(BmpFile, 16), BmpFile, 0);
+         } else {
+            Image = FreeImage_Load(Type, BmpFile, 0);
          }
-         FreeLibrary(hFreeImage);
       }
+      __except (exfilt()) {
+         Image = 0;
+      }
+      if (Image) {
+         lpbmi = (BITMAPINFO *) FreeImage_GetInfo(Image);
+         hdc = CreateEnhMetaFile(hdc, (LPCTSTR) NULL, NULL, (LPCTSTR) NULL);
+         if (lpbmi->bmiHeader.biXPelsPerMeter && lpbmi->bmiHeader.biYPelsPerMeter) {
+            resolutionX = lpbmi->bmiHeader.biXPelsPerMeter / 39.35483881;
+            resolutionY = lpbmi->bmiHeader.biYPelsPerMeter / 39.35483881;
+         }
+         StretchDIBits(hdc, 0, 0, (int)(GetDeviceCaps(hdc, LOGPIXELSX) * lpbmi->bmiHeader.biWidth / resolutionX), (int)(GetDeviceCaps(hdc, LOGPIXELSY) * lpbmi->bmiHeader.biHeight / resolutionY), 0, 0, lpbmi->bmiHeader.biWidth, lpbmi->bmiHeader.biHeight, (CONST VOID *) FreeImage_GetBits(Image), lpbmi, DIB_RGB_COLORS, SRCCOPY);
+         RETVAL = CloseEnhMetaFile(hdc);
+         FreeImage_Unload(Image);
+      } else {
+         if (!GetLastError()) {
+            SetLastError(ERROR_INVALID_DATA);
+         }
+      }
+#else
+      croak("FreeImage is not supported in this build!");
+#endif
     OUTPUT:
       RETVAL
 
@@ -826,7 +1004,7 @@ _DeleteEnhMetaFile(hemf)
     OUTPUT:
       RETVAL
 
-char*
+LPTSTR 
 _EnumPrinters(Flags, Server)
       int Flags;
       LPTSTR Server;
@@ -881,7 +1059,7 @@ _EnumPrinters(Flags, Server)
     OUTPUT:
       RETVAL
 
-char*
+LPTSTR 
 _EnumPrinterDrivers(Server, Env)
       LPTSTR Server;
       LPTSTR Env;
@@ -909,7 +1087,7 @@ _EnumPrinterDrivers(Server, Env)
             if (dri3[i].pDependentFiles != NULL) {
                while (1) {
                   if ((dri3[i].pDependentFiles[x] == '\0') && (dri3[i].pDependentFiles[x + 1] != '\0')) {
-                     dri3[i].pDependentFiles[x] = 59;
+                     dri3[i].pDependentFiles[x] = 42;
                   } else if ((dri3[i].pDependentFiles[x] == '\0') && (dri3[i].pDependentFiles[x + 1] == '\0')) {
                      break;
                   }
@@ -939,7 +1117,7 @@ _EnumPrinterDrivers(Server, Env)
     OUTPUT:
       RETVAL
 
-char*
+LPTSTR 
 _EnumPorts(Server)
       LPTSTR Server;
     PREINIT:
@@ -978,7 +1156,7 @@ _EnumPorts(Server)
     OUTPUT:
       RETVAL
 
-char*
+LPTSTR 
 _EnumMonitors(Server)
       LPTSTR Server;
     PREINIT:
@@ -1016,7 +1194,7 @@ _EnumMonitors(Server)
     OUTPUT:
       RETVAL
 
-char*
+LPTSTR 
 _EnumPrintProcessors(Server, Env)
       LPTSTR Server;
       LPTSTR Env;
@@ -1052,7 +1230,7 @@ _EnumPrintProcessors(Server, Env)
     OUTPUT:
       RETVAL
 
-char*
+LPTSTR 
 _EnumPrintProcessorDatatypes(Server, Processor)
       LPTSTR Server;
       LPTSTR Processor;
@@ -1087,7 +1265,7 @@ _EnumPrintProcessorDatatypes(Server, Processor)
     OUTPUT:
       RETVAL
 
-char*
+LPTSTR 
 _EnumJobs(EnPrinter, begin, end)
       LPTSTR EnPrinter;
       int begin;
@@ -1146,7 +1324,7 @@ _EnumJobs(EnPrinter, begin, end)
     OUTPUT:
       RETVAL
 
-char*
+LPTSTR 
 _GetTempPath()
     PREINIT:
       char msg[MAX_PATH];
@@ -1161,55 +1339,28 @@ _GhostPDF(ps, pdf)
       LPTSTR ps;
       LPTSTR pdf;
     PREINIT:
-      HKEY hkey1;
-      HKEY hkey2;
-      DWORD size = MAX_PATH;
-      char buff[MAX_PATH];
-      LPBYTE dll;
-      HINSTANCE hGS = NULL;
-      PROC gsapi_new_instance = NULL;
-      PROC gsapi_init_with_args = NULL;
-      PROC gsapi_exit = NULL;
-      PROC gsapi_delete_instance = NULL;
-      typedef struct gs_main_instance_s gs_main_instance;
+#ifdef GHOST
       gs_main_instance *minst;
-      int gsargc = 11;
+      int gsargc = 13;
       char pdfpath[MAX_PATH];
-      char* gsargv[] = { "Printer", "-dNOPAUSE", "-dBATCH", "-dSAFER", "-dDOINTERPOLATE", "-sDEVICE=pdfwrite", pdfpath, "-c", ".setpdfwrite", "-f", ps };
+      LPTSTR gsargv[] = { "Printer", "-dORIENT1=true", "-dDOINTERPOLATE", "-sstdout=%stderr", "-dNOPAUSE", "-dBATCH", "-dSAFER", "-sDEVICE=pdfwrite", pdfpath, "-c", ".setpdfwrite", "-f", ps };
+#endif
     CODE:
       RETVAL = NULL;
-      hGS = LoadLibrary("gsdll32.dll");
-      if (hGS == 0) {
-         if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SOFTWARE\\AFPL Ghostscript", 0, KEY_READ, &hkey1) == ERROR_SUCCESS) {
-            if (RegEnumKeyEx(hkey1, 0, buff, &size, NULL, NULL, NULL, NULL) == ERROR_SUCCESS) {
-               if (RegOpenKeyEx(hkey1, buff, 0, KEY_READ, &hkey2) == ERROR_SUCCESS) {
-                  RegQueryValueEx(hkey2, "GS_DLL", NULL, NULL, NULL, &size);
-                  New(0, dll, size, BYTE);
-                  RegQueryValueEx(hkey2, "GS_DLL", NULL, NULL, dll, &size);
-                  hGS = LoadLibrary((char*)dll);
-                  Safefree(dll);
-                  RegCloseKey(hkey2);
-               }
+#ifdef GHOST
+      __try {
+         if (gsapi_new_instance(&minst, NULL) == 0) {
+            sprintf(pdfpath, "-sOutputFile=%s", pdf);
+            if (gsapi_init_with_args(minst, gsargc, (LPTSTR *)gsargv) == 0) {
+               RETVAL = 1;
+               gsapi_exit(minst);
             }
-            RegCloseKey(hkey1);
+            gsapi_delete_instance(minst);
          }
       }
-      if (hGS != NULL) {
-         gsapi_new_instance = GetProcAddress(hGS, "gsapi_new_instance");
-         gsapi_init_with_args = GetProcAddress(hGS, "gsapi_init_with_args");
-         gsapi_exit = GetProcAddress(hGS, "gsapi_exit");
-         gsapi_delete_instance = GetProcAddress(hGS, "gsapi_delete_instance");
-         if (gsapi_new_instance && gsapi_init_with_args && gsapi_exit && gsapi_delete_instance) {
-            if (gsapi_new_instance(&minst, NULL) == 0) {
-               sprintf(pdfpath, "-sOutputFile=%s", pdf);
-               if (gsapi_init_with_args(minst, gsargc, (char**) gsargv) == 0) {
-                  RETVAL = 1;
-                  gsapi_exit(minst);
-               }
-               gsapi_delete_instance(minst);
-            }
-         }
-         FreeLibrary(hGS);
-      }
+      __except (exfilt()) { }
+#else
+      croak("Ghostscript is not supported in this build!");
+#endif
     OUTPUT:
       RETVAL
