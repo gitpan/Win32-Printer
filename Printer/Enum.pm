@@ -682,7 +682,8 @@ B<Edgars Binans>, I<admin@wasx.net>. I<http://www.wasx.net>
 
 =head1 COPYRIGHT AND LICENSE
 
-B<Copyright (C) 2003 Edgars Binans> I<admin@wasx.net>.
+B<Win32::Printer, Copyright (C) 2003 Edgars Binans E<lt>I<admin@wasx.net>E<gt>>.
+Website: L<http://www.wasx.net>.
 
 B<THIS LIBRARY IS FREE FOR NON-COMMERCIAL USE!!!>
 

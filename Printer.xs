@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------------*\
 | Win32::Printer                                                               |
-| V 0.6.5 (2003-10-13)                                                         |
+| V 0.6.6 (2003-10-28)                                                         |
 | Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            |
 | http://www.wasx.net                                                          |
 \*----------------------------------------------------------------------------*/
@@ -368,7 +368,7 @@ _CreatePen(fnPenStyle, nWidth, cRed, cGreen, cBlue)
     CODE:
       lb.lbStyle = BS_SOLID;
       lb.lbColor = RGB(cRed, cGreen, cBlue);
-      lb.lbHatch = NULL;;
+      lb.lbHatch = NULL;
       RETVAL = ExtCreatePen(fnPenStyle, nWidth, &lb, 0, NULL);
     OUTPUT:
       RETVAL
@@ -693,14 +693,14 @@ _GetWinMetaFile(hdc, lpszMetaFile)
          file = PerlIO_open(lpszMetaFile, "rb");
          if (file != NULL) {
             PerlIO_read(file, &MfHdr, sizeof(METAFILE_HEADER));
-            mfp.xExt = MfHdr.right - MfHdr.left;
-            mfp.yExt = MfHdr.bottom - MfHdr.top;
+            mfp.xExt = (long)((MfHdr.right - MfHdr.left) * 2540.9836 / MfHdr.inch);
+            mfp.yExt = (long)((MfHdr.bottom - MfHdr.top) * 2540.9836 / MfHdr.inch);
             PerlIO_seek(file, 0, SEEK_END);
             nSize = (UINT) PerlIO_tell(file) - 22;
             New(0, Data, nSize, BYTE);
             PerlIO_seek(file, 22, 0);
             PerlIO_read(file, Data, nSize);
-            hemf=SetMetaFileBitsEx(nSize, Data);
+            hemf = SetMetaFileBitsEx(nSize, Data);
             Safefree(Data);
             PerlIO_close(file);
          }
@@ -744,6 +744,8 @@ _LoadBitmap(hdc, BmpFile, Type);
       PROC fnFreeImage_Unload = NULL;
       PROC fnFreeImage_GetInfo = NULL;
       PROC fnFreeImage_GetBits = NULL;
+      double resolutionX = 72;
+      double resolutionY = 72;
     CODE:
       RETVAL = NULL;
       hFreeImage = LoadLibrary("FreeImage.dll");
@@ -763,7 +765,11 @@ _LoadBitmap(hdc, BmpFile, Type);
             if (Image) {
                lpbmi = (BITMAPINFO *) fnFreeImage_GetInfo(Image);
                hdc = CreateEnhMetaFile(hdc, (LPCTSTR) NULL, NULL, (LPCTSTR) NULL);
-               StretchDIBits(hdc, 0, 0, lpbmi->bmiHeader.biWidth, lpbmi->bmiHeader.biHeight, 0, 0, lpbmi->bmiHeader.biWidth, lpbmi->bmiHeader.biHeight, (CONST VOID *) fnFreeImage_GetBits(Image), lpbmi, DIB_RGB_COLORS, SRCCOPY);
+               if (lpbmi->bmiHeader.biXPelsPerMeter && lpbmi->bmiHeader.biYPelsPerMeter) {
+                  resolutionX = lpbmi->bmiHeader.biXPelsPerMeter / 39.35483881;
+                  resolutionY = lpbmi->bmiHeader.biYPelsPerMeter / 39.35483881;
+               }
+               StretchDIBits(hdc, 0, 0, (int)(GetDeviceCaps(hdc, LOGPIXELSX) * lpbmi->bmiHeader.biWidth / resolutionX), (int)(GetDeviceCaps(hdc, LOGPIXELSY) * lpbmi->bmiHeader.biHeight / resolutionY), 0, 0, lpbmi->bmiHeader.biWidth, lpbmi->bmiHeader.biHeight, (CONST VOID *) fnFreeImage_GetBits(Image), lpbmi, DIB_RGB_COLORS, SRCCOPY);
                RETVAL = CloseEnhMetaFile(hdc);
                fnFreeImage_Unload(Image);
             } else {
@@ -795,6 +801,22 @@ _PlayEnhMetaFile(hdc, hemf, nLeftRect, nTopRect, nRightRect, nBottomRect)
       RETVAL = PlayEnhMetaFile(hdc, hemf, &Rect);
     OUTPUT:
       RETVAL
+
+UINT
+_GetEnhSize(hdc, hemf, right, bottom)
+      HDC hdc;
+      HENHMETAFILE hemf;
+      double right;
+      double bottom;
+    PREINIT:
+      ENHMETAHEADER emh;
+    CODE:
+      RETVAL = GetEnhMetaFileHeader(hemf, sizeof(ENHMETAHEADER), &emh);
+      right = (emh.rclFrame.right - emh.rclFrame.left) * GetDeviceCaps(hdc, LOGPIXELSX) / 2540.9836;
+      bottom = (emh.rclFrame.bottom - emh.rclFrame.top) * GetDeviceCaps(hdc, LOGPIXELSY) / 2540.9836;
+    OUTPUT:
+      right
+      bottom
 
 BOOL
 _DeleteEnhMetaFile(hemf)

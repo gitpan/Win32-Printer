@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------#
 # Win32::Printer                                                               #
-# V 0.6.5 (2003-10-13)                                                         #
+# V 0.6.6 (2003-10-28)                                                         #
 # Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            #
 # http://www.wasx.net                                                          #
 #------------------------------------------------------------------------------#
@@ -17,7 +17,7 @@ require Exporter;
 
 use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD %params @pdfend);
 
-$VERSION = '0.6.5';
+$VERSION = '0.6.6';
 
 @ISA = qw( Exporter );
 
@@ -536,7 +536,7 @@ sub _xun2p {
 
   my $self = shift;
   my $uval = shift;
-  my $pval = ($uval * $self->{xres} / $self->{unit});
+  my $pval = $uval * $self->{xres} / $self->{unit};
   return $pval;
 
 }
@@ -545,7 +545,7 @@ sub _yun2p {
 
   my $self = shift;
   my $uval = shift;
-  my $pval = ($uval * $self->{yres} / $self->{unit});
+  my $pval = $uval * $self->{yres} / $self->{unit};
   return $pval;
 
 }
@@ -583,16 +583,21 @@ sub _pdf {
 
   if ((defined($params{'pdf'})) and (defined($pdfend[0]))) {
 
-    open my $oldout, ">&STDOUT";
-    open (STDOUT, ">$pdfend[1].log");
-    select STDOUT; $| = 1;
+    my $oldout;
+    if ($params{'pdf'} == 1) {
+      open $oldout, ">&STDOUT";
+      open (STDOUT, ">$pdfend[1].log");
+      select STDOUT; $| = 1;
+    }
 
     unless (Win32::Printer::_GhostPDF(@pdfend)) {
       croak "ERROR: Cannot create PDF document! ${\_GetLastError()}";
     }
 
-    close STDOUT;
-    open STDOUT, ">&", $oldout;
+    if ($params{'pdf'} == 1) {
+      close STDOUT;
+      open STDOUT, ">&", $oldout;
+    }
 
     unlink "$pdfend[0]";
     unlink "$pdfend[1].log" if $params{'pdf'} == 0;
@@ -1540,9 +1545,11 @@ sub Image {
 
   my $self = shift;
 
-  if (($#_ != 0) and ($#_ != 4)) { croak "WARNING: Wrong number parameters!\n"; }
+  if (($#_ != 0) and ($#_ != 2) and ($#_ != 4)) { croak "WARNING: Wrong number parameters!\n"; }
 
-  if ($#_ == 4) {
+  my ($width, $height) = (0, 0);
+
+  if (($#_ == 2) or ($#_ == 4)) {
 
     my ($fileorref, $x, $y, $w, $h) = @_;
 
@@ -1550,18 +1557,28 @@ sub Image {
       $fileorref = $self->Image($fileorref);
     }
 
+    _GetEnhSize($self->{dc}, $fileorref, $width, $height);
+    $width = $self->_xp2un($width);
+    $height = $self->_yp2un($height);
+
+    if ((!defined($w)) or ($w == 0)) { $w = $width; }
+    if ((!defined($h)) or ($h == 0)) { $h = $height; }
+
     unless (_PlayEnhMetaFile($self->{dc}, $fileorref, $self->_xun2p($x), $self->_yun2p($y), $self->_xun2p($x + $w), $self->_yun2p($y + $h))) {
       croak "ERROR: Cannot display metafile! ${\_GetLastError()}";
     }
 
-    return $fileorref;
+    return wantarray ? ($fileorref, $width, $height) : $fileorref;
 
   } else {
 
     my $file = shift;
 
     if (defined($self->{imagef}->{$file})) {
-      return $self->{imagef}->{$file};
+      _GetEnhSize($self->{dc}, $self->{imagef}->{$file}, $width, $height);
+      $width = $self->_xp2un($width);
+      $height = $self->_yp2un($height);
+      return wantarray ? ($self->{imagef}->{$file}, $width, $height) : $self->{imagef}->{$file};
     }
 
     my $fref;
@@ -1640,7 +1657,10 @@ sub Image {
     $self->{imager}->{$fref} = $file;
     $self->{imagef}->{$file} = $fref;
 
-    return $fref;
+    _GetEnhSize($self->{dc}, $fref, $width, $height);
+    $width = $self->_xp2un($width);
+    $height = $self->_yp2un($height);
+    return wantarray ? ($fref, $width, $height) : $fref;
 
   }
 
@@ -1762,6 +1782,16 @@ Win32 GDI graphical printing
 
 =head1 INSTALLATION
 
+=head2 Binnary instalation
+
+B<1.> Download binnary distribution of the module from I<http://www.wasx.net>.
+
+B<2.> Unzip distribution file and copy content to appropriate directories.
+
+B<3.> Enjoy it ;)
+
+=head2 Source installation
+
 B<1.> Make sure you have a C/C++ compiler and you're running Win32.
 
 B<2.> For VC++ 6.0 or VC++ .NET do the following (others not tested):
@@ -1831,11 +1861,14 @@ will be changed to B<file_name(1)... file_name(n)> to avoid overwriting.
 
 Set this attribute if You want to convert PostScript printer drivers output (see
 B<file> attribute) to PDF format. B<WARNING:> This feature needs installed
-I<Ghostscript>. Use this attribute with B<file>
-attribute.
+I<Ghostscript> and atleast one PostScript printer driver. Use this attribute
+with B<file> attribute.
 
-Set attribute to 0 if You do not need a log file- any other outputs a
-I<Ghostscript> log file.
+Set attribute value to:
+
+   0	- ignore Ghostscript output;
+   1	- redirect Ghostscript output to STDOUT;
+ other	- redirect Ghostscript output to log file;
 
 =item * dialog
 
@@ -2511,10 +2544,12 @@ See also L</Write>, and L</Color>.
 =head2 Image
 
   $image_handle = $dc->Image($filename);
+  ($image_handle, $original_width, $original_height) = $dc->Image($filename);
 
 B<or>
 
   $image_handle = $dc->Image($filename, $x, $y, $width, $height);
+  ($image_handle, $original_width, $original_height) = $dc->Image($filename, $x, $y, $width, $height);
   $dc->Image($image_handle, $x, $y, $width, $height);
 
 The B<Image> method loads an image file into memory and returns a handle
@@ -2524,6 +2559,8 @@ of image on the paper. Once loaded by image path- image is cached in to memory
 and it may be referenced by it's path.
 
 In second case if signed integer is given- method assumes it's a handle!
+
+In array context also returns original image width an d height B<$original_width, $original_height>.
 
 Natively it supports B<EMF> and B<WMF> format files.
 B<BMP, CUT, ICO, JPEG, JNG, KOALA, LBM, IFF, MNG, PBM, PBMRAW, PCD, PCX, PGM,
