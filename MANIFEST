@@ -1,9 +1,0 @@
-Makefile.PL
-MANIFEST
-Printer.pm
-Printer.xs
-t/1.t
-t/t.emf
-t/t.png
-t/t.wmf
-typemap
