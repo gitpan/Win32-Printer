@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------------*\
 | Win32::Printer                                                               |
-| V 0.6.2 (14.08.2003)                                                         |
+| V 0.6.3 (2003-08-28)                                                         |
 | Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            |
 | http://www.wasx.net                                                          |
 \*----------------------------------------------------------------------------*/
@@ -46,6 +46,10 @@ _CreatePrinter(printer, dialog, Flags, copies, collate, minp, maxp, orient, pape
       DEVMODE *lpdm;
       DEVNAMES *lpdn;
       LPTSTR pPrinterName;
+      int printlen;
+      HGLOBAL newDevNames;
+      char *dnch;
+      char *winspool = "winspool";
     CODE:
       RETVAL = (HDC) NULL;
       Newz(0, lppd, 1, PRINTDLG);
@@ -66,17 +70,30 @@ _CreatePrinter(printer, dialog, Flags, copies, collate, minp, maxp, orient, pape
          lpdm->dmCollate = collate;
          lpdm->dmDefaultSource = source;
          lpdm->dmColor = color;
-         lpdn = GlobalLock(lppd->hDevNames);
          if (dialog == 0) {
+            lpdn = GlobalLock(lppd->hDevNames);
             if (strlen(printer) != 0) {
-               RETVAL = CreateDC("WINSPOOL", printer, NULL, lpdm);
+               RETVAL = CreateDC("winspool", printer, NULL, lpdm);
             } else {
                New(0, pPrinterName, lpdn->wOutputOffset - lpdn->wDeviceOffset, char);
                Copy((char*)lpdn + lpdn->wDeviceOffset, pPrinterName, lpdn->wOutputOffset - lpdn->wDeviceOffset, char);
-               RETVAL = CreateDC("WINSPOOL", pPrinterName, NULL, lpdm);
+               RETVAL = CreateDC("winspool", pPrinterName, NULL, lpdm);
                Safefree(pPrinterName);
             }
          } else {
+            printlen = strlen(printer) < 32 ? (strlen(printer) + 1) : 32;
+            newDevNames = GlobalAlloc(GMEM_MOVEABLE, 17 + printlen);
+            dnch = GlobalLock(newDevNames);
+            Copy(winspool, dnch + 8, 9, char);
+            Copy(printer, dnch + 17, printlen, char);
+            dnch[17 + printlen] = '\0';
+            lpdn = (DEVNAMES*)dnch;
+            lpdn->wDriverOffset = 8;
+            lpdn->wDeviceOffset = 17;
+            lpdn->wOutputOffset = 17 + printlen;
+            lpdn->wDefault = 1;
+            lppd->hDevNames = newDevNames;
+            Copy(printer, lpdm->dmDeviceName, printlen, char);
             lppd->Flags = PD_RETURNDC | Flags;
             if (PrintDlg(lppd)) {
                if (Flags & PD_USEDEVMODECOPIESANDCOLLATE) {
@@ -780,5 +797,323 @@ _DeleteEnhMetaFile(hemf)
       HENHMETAFILE hemf;
     CODE:
       RETVAL = DeleteEnhMetaFile(hemf);
+    OUTPUT:
+      RETVAL
+
+char*
+_EnumPrinters(Flags, Server)
+      int Flags;
+      LPTSTR Server;
+    PREINIT:
+      int rc;
+      LPBYTE buffer;
+      LPBYTE outbuf;
+      LPBYTE tmpbuf;
+      unsigned int bytes;
+      DWORD needed, returned;
+      PRINTER_INFO_2 *pri2;
+      unsigned int i;
+    CODE:
+      if (Server == "") { Server = NULL; }
+      EnumPrinters(Flags, Server, 2, NULL, 0, &needed, &returned);
+      New(0, buffer, needed, BYTE);
+      New(0, outbuf, needed, BYTE);
+      tmpbuf = outbuf;
+      rc = EnumPrinters(Flags, Server, 2, buffer, needed, &needed, &returned);
+      pri2 = (PRINTER_INFO_2 *) buffer;
+      if ((rc) && (returned)) {
+         for (i = 0; i < returned; i++) {
+            bytes = sprintf(tmpbuf, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t\n",
+               pri2[i].pServerName,
+               pri2[i].pPrinterName,
+               pri2[i].pShareName,
+               pri2[i].pPortName,
+               pri2[i].pDriverName,
+               pri2[i].pComment,
+               pri2[i].pLocation,
+               pri2[i].pSepFile,
+               pri2[i].pPrintProcessor,
+               pri2[i].pDatatype,
+               pri2[i].pParameters,
+               pri2[i].Attributes,
+               pri2[i].Priority,
+               pri2[i].DefaultPriority,
+               pri2[i].StartTime,
+               pri2[i].UntilTime,
+               pri2[i].Status,
+               pri2[i].cJobs,
+               pri2[i].AveragePPM
+            );
+            tmpbuf += bytes;
+         }
+         RETVAL = outbuf;
+      } else {
+         if ((rc) && (!returned)) { RETVAL = ""; } else { RETVAL = NULL; }
+      }
+      Safefree(outbuf);
+      Safefree(buffer);
+    OUTPUT:
+      RETVAL
+
+char*
+_EnumPrinterDrivers(Server, Env)
+      LPTSTR Server;
+      LPTSTR Env;
+    PREINIT:
+      int rc;
+      LPBYTE buffer;
+      LPBYTE outbuf;
+      LPBYTE tmpbuf;
+      unsigned int bytes;
+      DWORD needed, returned;
+      DRIVER_INFO_3 *dri3;
+      unsigned int i;
+      unsigned int x = 0;
+    CODE:
+      if (Server == "") { Server = NULL; }
+      if (Env == "") { Env = NULL; }
+      EnumPrinterDrivers(Server, Env, 3, NULL, 0, &needed, &returned);
+      New(0, buffer, needed, BYTE);
+      New(0, outbuf, needed, BYTE);
+      tmpbuf = outbuf;
+      rc = EnumPrinterDrivers(Server, Env, 3, buffer, needed, &needed, &returned);
+      dri3 = (DRIVER_INFO_3 *) buffer;
+      if ((rc) && (returned)) {
+         for (i = 0; i < returned; i++) {
+            while (1) {
+               if ((dri3[i].pDependentFiles[x] == '\0') && (dri3[i].pDependentFiles[x + 1] != '\0')) {
+                  dri3[i].pDependentFiles[x] = 59;
+               } else if ((dri3[i].pDependentFiles[x] == '\0') && (dri3[i].pDependentFiles[x + 1] == '\0')) {
+                  break;
+               }
+               x++;
+            }
+            bytes = sprintf(tmpbuf, "%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+               dri3[i].cVersion,
+               dri3[i].pName,
+               dri3[i].pEnvironment,
+               dri3[i].pDriverPath,
+               dri3[i].pDataFile,
+               dri3[i].pConfigFile,
+               dri3[i].pHelpFile, 
+               dri3[i].pDependentFiles,
+               dri3[i].pMonitorName,
+               dri3[i].pDefaultDataType
+            );
+            tmpbuf += bytes;
+         }
+         RETVAL = outbuf;
+      } else {
+         if ((rc) && (!returned)) { RETVAL = ""; } else { RETVAL = NULL; }
+      }
+      Safefree(outbuf);
+      Safefree(buffer);
+    OUTPUT:
+      RETVAL
+
+char*
+_EnumPorts(Server)
+      LPTSTR Server;
+    PREINIT:
+      int rc;
+      LPBYTE buffer;
+      LPBYTE outbuf;
+      LPBYTE tmpbuf;
+      unsigned int bytes;
+      DWORD needed, returned;
+      PORT_INFO_2 *pi2;
+      unsigned int i;
+    CODE:
+      if (Server == "") { Server = NULL; }
+      EnumPorts(Server, 2, NULL, 0, &needed, &returned);
+      New(0, buffer, needed, BYTE);
+      New(0, outbuf, needed, BYTE);
+      tmpbuf = outbuf;
+      rc = EnumPorts(Server, 2, buffer, needed, &needed, &returned);
+      pi2 = (PORT_INFO_2 *) buffer;
+      if ((rc) && (returned)) {
+         for (i = 0; i < returned; i++) {
+            bytes = sprintf(tmpbuf, "%s\t%s\t%s\t%d\n", 
+               pi2[i].pPortName,
+               pi2[i].pMonitorName,
+               pi2[i].pDescription,
+               pi2[i].fPortType
+            );
+            tmpbuf += bytes;
+         }
+         RETVAL = outbuf;
+      } else {
+         if ((rc) && (!returned)) { RETVAL = ""; } else { RETVAL = NULL; }
+      }
+      Safefree(outbuf);
+      Safefree(buffer);
+    OUTPUT:
+      RETVAL
+
+char*
+_EnumMonitors(Server)
+      LPTSTR Server;
+    PREINIT:
+      int rc;
+      LPBYTE buffer;
+      LPBYTE outbuf;
+      LPBYTE tmpbuf;
+      unsigned int bytes;
+      DWORD needed, returned;
+      MONITOR_INFO_2 *mi2;
+      unsigned int i;
+    CODE:
+      if (Server == "") { Server = NULL; }
+      EnumMonitors(Server, 2, NULL, 0, &needed, &returned);
+      New(0, buffer, needed, BYTE);
+      New(0, outbuf, needed, BYTE);
+      tmpbuf = outbuf;
+      rc = EnumMonitors(Server, 2, buffer, needed, &needed, &returned);
+      mi2 = (MONITOR_INFO_2 *) buffer;
+      if ((rc) && (returned)) {
+         for (i = 0; i < returned; i++) {
+            bytes = sprintf(tmpbuf, "%s\t%s\t%s\n",
+               mi2[i].pName,
+               mi2[i].pEnvironment,
+               mi2[i].pDLLName
+            );
+            tmpbuf += bytes;
+         }
+         RETVAL = outbuf;
+      } else {
+         if ((rc) && (!returned)) { RETVAL = ""; } else { RETVAL = NULL; }
+      }
+      Safefree(outbuf);
+      Safefree(buffer);
+    OUTPUT:
+      RETVAL
+
+char*
+_EnumPrintProcessors(Server, Env)
+      LPTSTR Server;
+      LPTSTR Env;
+    PREINIT:
+      int rc;
+      LPBYTE buffer;
+      LPBYTE outbuf;
+      LPBYTE tmpbuf;
+      unsigned int bytes;
+      DWORD needed, returned;
+      PRINTPROCESSOR_INFO_1 *ppi1;
+      unsigned int i;
+    CODE:
+      if (Server == "") { Server = NULL; }
+      if (Env == "") { Env = NULL; }
+      EnumPrintProcessors(Server, Env, 1, NULL, 0, &needed, &returned);
+      New(0, buffer, needed, BYTE);
+      New(0, outbuf, needed, BYTE);
+      tmpbuf = outbuf;
+      rc = EnumPrintProcessors(Server, Env, 1, buffer, needed, &needed, &returned);
+      ppi1 = (PRINTPROCESSOR_INFO_1 *)buffer;
+      if ((rc) && (returned)) {
+         for (i = 0; i < returned; i++) {
+            bytes = sprintf(tmpbuf, "%s\n", ppi1[i].pName);
+            tmpbuf += bytes;
+         }
+         RETVAL = outbuf;
+      } else {
+         if ((rc) && (!returned)) { RETVAL = ""; } else { RETVAL = NULL; }
+      }
+      Safefree(outbuf);
+      Safefree(buffer);
+    OUTPUT:
+      RETVAL
+
+char*
+_EnumPrintProcessorDatatypes(Server, Processor)
+      LPTSTR Server;
+      LPTSTR Processor;
+    PREINIT:
+      int rc;
+      LPBYTE buffer;
+      LPBYTE outbuf;
+      LPBYTE tmpbuf;
+      unsigned int bytes;
+      DWORD needed, returned;
+      DATATYPES_INFO_1 *dti1;
+      unsigned int i;
+    CODE:
+      if (Server == "") { Server = NULL; }
+      EnumPrintProcessorDatatypes(Server, Processor, 1, NULL, 0, &needed, &returned);
+      New(0, buffer, needed, BYTE);
+      New(0, outbuf, needed, BYTE);
+      tmpbuf = outbuf;
+      rc = EnumPrintProcessorDatatypes(Server, Processor, 1, buffer, needed, &needed, &returned);
+      dti1 = (DATATYPES_INFO_1 *)buffer;
+      if ((rc) && (returned)) {
+         for (i = 0; i < returned; i++) {
+            bytes = sprintf(tmpbuf, "%s\n", dti1[i].pName);
+            tmpbuf += bytes;
+         }
+         RETVAL = outbuf;
+      } else {
+         if ((rc) && (!returned)) { RETVAL = ""; } else { RETVAL = NULL; }
+      }
+      Safefree(outbuf);
+      Safefree(buffer);
+    OUTPUT:
+      RETVAL
+
+char*
+_EnumJobs(EnPrinter, begin, end)
+      LPTSTR EnPrinter;
+      int begin;
+      int end;
+    PREINIT:
+      HANDLE hPrinter;
+      int rc;
+      LPBYTE buffer;
+      LPBYTE outbuf;
+      LPBYTE tmpbuf;
+      unsigned int bytes;
+      DWORD needed, returned;
+      JOB_INFO_2 *ji2;
+      unsigned int i;
+    CODE:
+       RETVAL = NULL;
+      if (OpenPrinter(EnPrinter, &hPrinter, NULL)) {
+         EnumJobs(hPrinter, begin, end, 2, NULL, 0, &needed, &returned);
+         New(0, buffer, needed, BYTE);
+         New(0, outbuf, needed, BYTE);
+         tmpbuf = outbuf;
+         rc = EnumJobs(hPrinter, begin, end, 2, buffer, needed, &needed, &returned);
+         ji2 = (JOB_INFO_2 *)buffer;
+         if ((rc) && (returned)) {
+            for (i = 0; i < returned; i++) {
+               bytes = sprintf(tmpbuf, "%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+                  ji2[i].JobId,
+                  ji2[i].pPrinterName,
+                  ji2[i].pMachineName,
+                  ji2[i].pUserName,
+                  ji2[i].pDocument,
+                  ji2[i].pNotifyName,
+                  ji2[i].pDatatype,
+                  ji2[i].pPrintProcessor,
+                  ji2[i].pParameters,
+                  ji2[i].pDriverName,
+                  ji2[i].pStatus,
+                  ji2[i].Status,
+                  ji2[i].Priority,
+                  ji2[i].Position,
+                  ji2[i].StartTime,
+                  ji2[i].UntilTime,
+                  ji2[i].TotalPages,
+                  ji2[i].Size,
+                  ji2[i].PagesPrinted
+               );
+               tmpbuf += bytes;
+            }
+            RETVAL = outbuf;
+         } else {
+            if ((rc) && (!returned)) { RETVAL = ""; } else { RETVAL = NULL; }
+         }
+         Safefree(outbuf);
+         Safefree(buffer);
+      }
     OUTPUT:
       RETVAL

@@ -1,5 +1,6 @@
 Makefile.PL
 MANIFEST
+Printer/Enum.pm
 Printer.pm
 Printer.xs
 t/1.t

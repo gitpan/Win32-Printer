@@ -1,15 +1,19 @@
 #------------------------------------------------------------------------------#
-# Win32::Printer test script                                                   #
-# V 0.6.0 (09.06.2003) Win32 GDI                                               #
+# Win32::Printer & Win32::Printer::Enum test script                            #
+# V 0.6.3 (2003-08-28) Win32 GDI                                               #
 # Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            #
 #------------------------------------------------------------------------------#
 
-use Test::Simple tests => 46;
+use Test::Simple tests => 53;
 
 use strict;
 use warnings;
 
 use Win32::Printer;
+use Win32::Printer::Enum;
+use Win32::Printer::Enum qw( Drivers Ports Monitors Processors Types Jobs );
+
+#------------------------------------------------------------------------------#
 
 my $dc = new Win32::Printer( dialog => NOSELECTION, orientation => LANDSCAPE );
 ok ( defined($dc), 'new() works' );
@@ -82,3 +86,16 @@ ok ( $dc->End() == 1, 'End()' );
 ok ( $dc->Close($fontref) == 1, 'Close() Font' );
 ok ( $dc->Close($bmp00) == 1, 'Close() Image' );
 ok ( $dc->Close() == 1, 'Close()' );
+
+#------------------------------------------------------------------------------#
+
+ok ( defined(Printers(ENUM_LOCAL)), 'Printers(ENUM_LOCAL)');
+ok ( defined(Drivers()), 'Drivers()');
+ok ( defined(Ports()), 'Ports()');
+ok ( defined(Monitors()), 'Monitors()');
+ok ( defined(Processors()), 'Processors()');
+ok ( defined(Types()), 'Types()');
+my @printer = Printers(ENUM_LOCAL);
+ok ( defined(Jobs($printer[0]{PrinterName}, 0, 1)), 'Jobs()');
+
+#------------------------------------------------------------------------------#

@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------#
 # Win32::Printer                                                               #
-# V 0.6.2 (14.08.2003) Win32 GDI                                               #
+# V 0.6.3 (2003-08-28)                                                         #
 # Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            #
 # http://www.wasx.net                                                          #
 #------------------------------------------------------------------------------#
@@ -17,11 +17,11 @@ require Exporter;
 
 use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD );
 
-$VERSION = '0.6.2';
+$VERSION = '0.6.3';
 
 @ISA = qw( Exporter );
 
-@EXPORT = qw (
+@EXPORT = qw(
 
 	LETTER LETTERSMALL TABLOID LEDGER LEGAL STATEMENT EXECUTIVE A3 A4
 	A4SMALL A5 B4 B5 FOLIO QUARTO IN_10X14 IN_11X17 NOTE ENV_9 ENV_10
@@ -1733,7 +1733,7 @@ parameters:
 =item * printer
 
 If both B<printer> and B<dialog> attributes omitted- systems B<default printer>
-is used. This attribute is overriden by B<dialog> atribute.
+is used. Value of attribute is also used for B<dialog> initialisation.
 
 Set printer's "friendly" name e.g. "HP LaserJet 8500" or network printer's UNC
 e.g. "\\\\server\\printer".
@@ -1741,7 +1741,7 @@ e.g. "\\\\server\\printer".
 =item * dialog
 
 If both B<printer> and B<dialog> attributes omitted- systems B<default printer>
-is used. Overrides B<printer> atribute.
+is used.
 
 Printer dialog settings. You may use the combination of the following flags
 (B<$dc-E<gt>{flags}> contains modified printer dialog flags):
@@ -1817,16 +1817,6 @@ Hides the B<Print to File> check box.
 
 Hides and disables the B<Network> button.
 
-=item * copies
-
-Initial number of document copies to print.
-See also USEDEVMODECOPIESANDCOLLATE.
-
-=item * collate
-
-If this flag is set, the B<Collate> check box is checked.
-See also USEDEVMODECOPIESANDCOLLATE.
-
 =item * minp
 
 Minor page number in printer dialog (minimal possible value).
@@ -1836,6 +1826,16 @@ Minor page number in printer dialog (minimal possible value).
 Major page number in printer dialog (maximal possible value).
 
 =item * orientation
+
+=item * copies
+
+Initial number of document copies to print.
+See also USEDEVMODECOPIESANDCOLLATE.
+
+=item * collate
+
+If this flag is set, the B<Collate> check box is checked.
+See also USEDEVMODECOPIESANDCOLLATE.
 
 Page orientation (portrait by default).
 
@@ -2658,7 +2658,7 @@ See also L</Font> and L</Color>.
 
 =head1 SEE ALSO
 
-Win32 Platform SDK GDI documentation.
+L<Win32::Printer::Enum>, Win32 Platform SDK GDI documentation.
 
 =head1 AUTHOR
 
