@@ -1,7 +1,8 @@
 #------------------------------------------------------------------------------#
 # Win32::Printer                                                               #
-# V 0.6.1 (03.08.2003) Win32 GDI                                               #
+# V 0.6.2 (14.08.2003) Win32 GDI                                               #
 # Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            #
+# http://www.wasx.net                                                          #
 #------------------------------------------------------------------------------#
 
 package Win32::Printer;
@@ -16,7 +17,7 @@ require Exporter;
 
 use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD );
 
-$VERSION = '0.6.1';
+$VERSION = '0.6.2';
 
 @ISA = qw( Exporter );
 
@@ -449,7 +450,7 @@ sub _init {
   my (%params) = @_;
 
   for (keys %params) {
-    if ($_ !~ /dialog|copies|collate|minp|maxp|orientation|papersize|duplex|description|unit|source|color/) {
+    if ($_ !~ /printer|dialog|copies|collate|minp|maxp|orientation|papersize|duplex|description|unit|source|color/) {
       carp qq^WARNING: Unknown attribute "$_"!\n^;
     }
   }
@@ -462,17 +463,18 @@ sub _init {
     $params{'dialog'} = 0;
   }
 
-  if (!_num($params{'copies'}))		{ $params{'copies'}	 = 1; }
-  if (!_num($params{'collate'}))	{ $params{'collate'}	 = 1; }
-  if (!_num($params{'minp'}))		{ $params{'minp'}	 = 0; }
-  if (!_num($params{'maxp'}))		{ $params{'maxp'}	 = 0; }
-  if (!_num($params{'orientation'}))	{ $params{'orientation'} = 0; }
-  if (!_num($params{'papersize'}))	{ $params{'papersize'}	 = 0; }
-  if (!_num($params{'duplex'}))		{ $params{'duplex'}	 = 0; }
-  if (!_num($params{'source'}))		{ $params{'source'}	 = 7; }
-  if (!_num($params{'color'}))		{ $params{'color'}	 = 2; }
+  if (!defined $params{'printer'})	{ $params{'printer'}	 = ""; }
+  if (!_num($params{'copies'}))		{ $params{'copies'}	 = 1;  }
+  if (!_num($params{'collate'}))	{ $params{'collate'}	 = 1;  }
+  if (!_num($params{'minp'}))		{ $params{'minp'}	 = 0;  }
+  if (!_num($params{'maxp'}))		{ $params{'maxp'}	 = 0;  }
+  if (!_num($params{'orientation'}))	{ $params{'orientation'} = 0;  }
+  if (!_num($params{'papersize'}))	{ $params{'papersize'}	 = 0;  }
+  if (!_num($params{'duplex'}))		{ $params{'duplex'}	 = 0;  }
+  if (!_num($params{'source'}))		{ $params{'source'}	 = 7;  }
+  if (!_num($params{'color'}))		{ $params{'color'}	 = 2;  }
 
-  $self->{dc} = _CreatePrinter($dialog, $params{'dialog'}, $params{'copies'}, $params{'collate'}, $params{'minp'}, $params{'maxp'}, $params{'orientation'}, $params{'papersize'}, $params{'duplex'}, $params{'source'}, $params{'color'});
+  $self->{dc} = _CreatePrinter($params{'printer'}, $dialog, $params{'dialog'}, $params{'copies'}, $params{'collate'}, $params{'minp'}, $params{'maxp'}, $params{'orientation'}, $params{'papersize'}, $params{'duplex'}, $params{'source'}, $params{'color'});
   unless ($self->{dc}) {
     croak "ERROR: Cannot create printer object! ${\_GetLastError()}";
   }
@@ -1701,7 +1703,8 @@ B<2.> For VC++ 6.0 or VC++ .NET do the following (others not tested):
 
 B<3.> For bitmap support, copy I<FreeImage.dll> somewhere in your system path.
 You may get this library form I<http://sourceforge.net> or binary distribution
-of this module. FreeImage library is needed for the tests!
+of this module (I<http://www.wasx.net>). FreeImage library is needed for the
+tests!
 
 B<4.> Enjoy it ;)
 
@@ -1727,10 +1730,20 @@ parameters:
 
 =over
 
+=item * printer
+
+If both B<printer> and B<dialog> attributes omitted- systems B<default printer>
+is used. This attribute is overriden by B<dialog> atribute.
+
+Set printer's "friendly" name e.g. "HP LaserJet 8500" or network printer's UNC
+e.g. "\\\\server\\printer".
+
 =item * dialog
 
-Printer dialog settings. If omitted- B<default printer> is used.
-You may use the combination of the following flags
+If both B<printer> and B<dialog> attributes omitted- systems B<default printer>
+is used. Overrides B<printer> atribute.
+
+Printer dialog settings. You may use the combination of the following flags
 (B<$dc-E<gt>{flags}> contains modified printer dialog flags):
 
   ALLPAGES			= 0x000000
@@ -2649,7 +2662,7 @@ Win32 Platform SDK GDI documentation.
 
 =head1 AUTHOR
 
-B<Edgars Binans>, I<admin@wasx.net>.
+B<Edgars Binans>, I<admin@wasx.net>. I<http://www.wasx.net>
 
 =head1 COPYRIGHT AND LICENSE
 
