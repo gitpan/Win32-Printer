@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------#
 # Win32::Printer                                                               #
-# V 0.8.1 (2004-06-22)                                                         #
+# V 0.8.2 (2004-08-06)                                                         #
 # Copyright (C) 2003-2004 Edgars Binans <admin@wasx.net>                       #
 # http://www.wasx.net                                                          #
 #------------------------------------------------------------------------------#
@@ -15,17 +15,18 @@ use Carp;
 
 require Exporter;
 
-use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD $debuglevel $numcroaked );
+use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD $_debuglevel $_numcroaked $_IsNT);
 
-$VERSION = '0.8.1';
+$VERSION = '0.8.2';
 
 @ISA = qw( Exporter );
 
 @EXPORT = qw(
 
-	EB_25MATRIX EB_25INT EB_25IND EB_25IATA EB_27 EB_39 EB_39EX EB_39DUMB
-	EB_93 EB_128X EB_128A EB_128B EB_128C EB_128S EB_128EAN EB_EAN13 EB_UPCA
-	EB_EAN8 EB_UPCE EB_ISBN EB_ISBN2 EB_ISSN EB_AD2 EB_AD5 EB_CHK EB_TXT
+	EB_25MATRIX EB_25INTER EB_25IND EB_25IATA EB_27 EB_39STD EB_39EXT
+	EB_39DUMB EB_93 EB_128SMART EB_128A EB_128B EB_128C EB_128SHFT EB_128EAN
+	EB_EAN13 EB_UPCA EB_EAN8 EB_UPCE EB_ISBN EB_ISBN2 EB_ISSN EB_AD2 EB_AD5
+	EB_CHK EB_TXT
 
 	LETTER LETTERSMALL TABLOID LEDGER LEGAL STATEMENT EXECUTIVE A3 A4
 	A4SMALL A5 B4 B5 FOLIO QUARTO IN_10X14 IN_11X17 NOTE ENV_9 ENV_10
@@ -85,9 +86,9 @@ XSLoader::load('Win32::Printer', $VERSION);
 #------------------------------------------------------------------------------#
 
 sub _carp {
-  if (!defined($debuglevel)) { $debuglevel = 0; }
+  if (!defined($_debuglevel)) { $_debuglevel = 0; }
   my $arg = shift;
-  if ($debuglevel == 1) {
+  if ($_debuglevel == 1) {
     croak $arg, "(Died on warning!)";
   } else {
     carp $arg;
@@ -95,9 +96,9 @@ sub _carp {
 }
 
 sub _croak {
-  if (!defined($debuglevel)) { $debuglevel = 0; }
+  if (!defined($_debuglevel)) { $_debuglevel = 0; }
   my $arg = shift;
-  if ($debuglevel == 2) {
+  if ($_debuglevel == 2) {
     carp $arg, "(Warned on error!)";
   } else {
     croak $arg;
@@ -118,20 +119,21 @@ sub AUTOLOAD {
 
 #------------------------------------------------------------------------------#
 
+# "ebar" modes
 sub EB_25MATRIX			{ 0x00000001; }
-sub EB_25INT			{ 0x00000002; }
+sub EB_25INTER			{ 0x00000002; }
 sub EB_25IND			{ 0x00000004; }
 sub EB_25IATA			{ 0x00000008; }
 sub EB_27			{ 0x00000010; }
-sub EB_39			{ 0x00000020; }
-sub EB_39EX			{ 0x00000040; }
+sub EB_39STD			{ 0x00000020; }
+sub EB_39EXT			{ 0x00000040; }
 sub EB_39DUMB			{ 0x00000080; }
 sub EB_93			{ 0x00000100; }
-sub EB_128X			{ 0x00000200; }
+sub EB_128SMART			{ 0x00000200; }
 sub EB_128A			{ 0x00000400; }
 sub EB_128B			{ 0x00000800; }
 sub EB_128C			{ 0x00001000; }
-sub EB_128S			{ 0x00002000; }
+sub EB_128SHFT			{ 0x00002000; }
 sub EB_128EAN			{ 0x00004000; }
 sub EB_EAN13			{ 0x00008000; }
 sub EB_UPCA			{ 0x00010000; }
@@ -439,12 +441,12 @@ sub _init {
     }
   }
 
-  $numcroaked = 0;
+  $_numcroaked = 0;
 
   if ((!_num($self->{params}->{'debug'})) or ($self->{params}->{'debug'} > 2)) {
-    $debuglevel = 0;
+    $_debuglevel = 0;
   } else {
-    $debuglevel = $self->{params}->{'debug'};
+    $_debuglevel = $self->{params}->{'debug'};
   }
 
   my $dialog;
@@ -480,7 +482,7 @@ sub _init {
   unless (_num($self->{params}->{'height'}))	{ $self->{params}->{'height'}	 = 0;  }
   unless (_num($self->{params}->{'width'}))	{ $self->{params}->{'width'}	 = 0;  }
 
-  return undef if $numcroaked;
+  return undef if $_numcroaked;
 
   if (($self->{params}->{'width'}) and (!$self->{params}->{'height'})) {
     $self->{params}->{'width'} = 0;
@@ -524,6 +526,11 @@ sub _init {
     undef $self->{params}->{'prompt'};
   }
 
+  unless($_IsNT = _IsNT()) {
+    _carp qq^WARNING: Windows 95/98/ME detected!\n^;
+    _carp qq^WARNING: All "Space" tranformations will be ignored!\n^;
+  }
+
   $self->{dc} = _CreatePrinter($self->{params}->{'printer'}, $dialog, $self->{params}->{'dialog'}, $self->{params}->{'copies'}, $self->{params}->{'collate'}, $self->{params}->{'minp'}, $self->{params}->{'maxp'}, $self->{params}->{'orientation'}, $self->{params}->{'papersize'}, $self->{params}->{'duplex'}, $self->{params}->{'source'}, $self->{params}->{'color'}, $self->{params}->{'height'}, $self->{params}->{'width'});
   unless ($self->{dc}) {
     _croak "ERROR: Cannot create printer object! ${\_GetLastError()}";
@@ -533,6 +540,17 @@ sub _init {
 
   unless (defined($self->Unit($self->{params}->{'unit'} || 1))) {
     _croak "ERROR: Cannot set default units!\n";
+    return undef;
+  }
+
+  $self->{xres} = $self->Caps(LOGPIXELSX);
+  $self->{yres} = $self->Caps(LOGPIXELSY);
+
+  $self->{xsize} = $self->_xp2un($self->Caps(PHYSICALWIDTH));
+  $self->{ysize} = $self->_yp2un($self->Caps(PHYSICALHEIGHT));
+
+  unless (($self->{xres} > 0) && ($self->{yres} > 0)) {
+    _croak "ERROR: Cannot get printer resolution! ${\_GetLastError()}";
     return undef;
   }
 
@@ -615,7 +633,7 @@ sub _num {
     if ($val =~ /^\-*\d+\.*\d*$/) {
       return 1;
     } else {
-      $numcroaked = 1;
+      $_numcroaked = 1;
       _croak qq^ERROR: Argument "$val" isn't numeric!\n^;
       return undef;
     }
@@ -744,17 +762,6 @@ sub Unit {
     return $self->{unit};
   }
 
-  $self->{xres} = $self->Caps(LOGPIXELSX);
-  $self->{yres} = $self->Caps(LOGPIXELSY);
-
-  $self->{xsize} = $self->_xp2un($self->Caps(PHYSICALWIDTH));
-  $self->{ysize} = $self->_yp2un($self->Caps(PHYSICALHEIGHT));
-
-  unless (($self->{xres} > 0) && ($self->{yres} > 0)) {
-    _croak "ERROR: Cannot get printer resolution! ${\_GetLastError()}";
-    return undef;
-  }
-
   return $self->{unit};
 
 }
@@ -768,17 +775,17 @@ sub Debug {
   if ($#_ > 0) { _carp "WARNING: Too many actual parameters!\n"; }
 
   if ($#_ == 0) {
-    $numcroaked = 0;
+    $_numcroaked = 0;
     _num($_[0]);
-    return undef if $numcroaked;
+    return undef if $_numcroaked;
     if (($_[0] > -1) and ($_[0] < 3)) {
-      $debuglevel = shift;
+      $_debuglevel = shift;
     } else {
       _croak "ERROR: Invalid argument!\n";
     }
   }
 
-  return $debuglevel;
+  return $_debuglevel;
 
 }
 
@@ -979,29 +986,33 @@ sub Space {
 
   my $self = shift;
 
-  if ($#_ > 5) { _carp "WARNING: Too many actual parameters!\n"; }
-  if ($#_ < 5) {
-    _croak "ERROR: Not enough actual parameters!\n";
-    return undef;
-  }
+  if ($_IsNT) {
 
-  $numcroaked = 0;
-  for (@_) { _num($_); }
-  return undef if $numcroaked;
+    if ($#_ > 5) { _carp "WARNING: Too many actual parameters!\n"; }
+    if ($#_ < 5) {
+      _croak "ERROR: Not enough actual parameters!\n";
+      return undef;
+    }
 
-  my ($m11, $m12, $m21, $m22, $dx, $dy) = @_;
+    $_numcroaked = 0;
+    for (@_) { _num($_); }
+    return undef if $_numcroaked;
 
-  my $xoff = $self->Caps(PHYSICALOFFSETX);
-  my $yoff = $self->Caps(PHYSICALOFFSETY);
+    my ($m11, $m12, $m21, $m22, $dx, $dy) = @_;
 
-  unless (defined($xoff) && defined($yoff)) {
-    _croak "ERROR: Cannot get the physical offset!\n";
-    return undef;
-  }
+    my $xoff = $self->Caps(PHYSICALOFFSETX);
+    my $yoff = $self->Caps(PHYSICALOFFSETY);
 
-  if (_SetWorldTransform($self->{dc}, $m11, $m12, $m21, $m22, $self->_xun2p($dx) - $xoff, $self->_yun2p($dy) - $yoff) == 0) {
-    _croak "ERROR: Cannot transform space! ${\_GetLastError()}";
-    return undef;
+    unless (defined($xoff) && defined($yoff)) {
+      _croak "ERROR: Cannot get the physical offset!\n";
+      return undef;
+    }
+
+    if (_SetWorldTransform($self->{dc}, $m11, $m12, $m21, $m22, $self->_xun2p($dx) - $xoff, $self->_yun2p($dy) - $yoff) == 0) {
+      _croak "ERROR: Cannot transform space! ${\_GetLastError()}";
+      return undef;
+    }
+
   }
 
   return 1;
@@ -1038,13 +1049,13 @@ sub Font {
         $orient = $angle;
       }
     }
-    $numcroaked = 0;
+    $_numcroaked = 0;
     $face = '' if !defined $face;
     $size = 10 unless _num($size);
     $escape = 0 unless _num($escape);
     $orient = 0 unless _num($orient);
     $charset = DEFAULT unless _num($charset);
-    return undef if $numcroaked;
+    return undef if $_numcroaked;
 
     my $fontid = "$face\_$size\_$escape\_$orient\_$charset";
 
@@ -1114,11 +1125,11 @@ sub Write {
 
     my ($string, $x, $y, $align) = @_;
 
-    $numcroaked = 0;
+    $_numcroaked = 0;
     for ($x, $y, $align) {
       _num($_);
     }
-    return undef if $numcroaked;
+    return undef if $_numcroaked;
 
     unless (defined($string)) { $string = ""; }
     unless ($align) { $align = LEFT; }
@@ -1156,11 +1167,11 @@ sub Write {
 
     my ($string, $x, $y, $w, $h, $f, $tab) = @_;
 
-    $numcroaked = 0;
+    $_numcroaked = 0;
     for ($x, $y, $w, $h, $f, $tab) {
       _num($_);
     }
-    return undef if $numcroaked;
+    return undef if $_numcroaked;
 
     if (!defined($string)) { $string = ""; }
 
@@ -1220,11 +1231,11 @@ sub Pen {
 
     my ($w, $r, $g, $b, $s) = @_;
 
-    $numcroaked = 0;
+    $_numcroaked = 0;
     for ($w, $r, $g, $b, $s) {
       _num($_);
     }
-    return undef if $numcroaked;
+    return undef if $_numcroaked;
 
     if (!defined($s)) { $s = PS_SOLID; }
 
@@ -1270,9 +1281,9 @@ sub Color {
     return undef;
   }
 
-  $numcroaked = 0;
+  $_numcroaked = 0;
   for (@_) { _num($_); }
-  return undef if $numcroaked;
+  return undef if $_numcroaked;
 
   my ($r, $g, $b) = @_;
 
@@ -1293,9 +1304,9 @@ sub Brush {
 
   my $self = shift;
 
-  $numcroaked = 0;
+  $_numcroaked = 0;
   for (@_) { _num($_); }
-  return undef if $numcroaked;
+  return undef if $_numcroaked;
 
   my ($r, $g, $b, $hs) = @_;
 
@@ -1368,9 +1379,9 @@ sub Fill {
   }
 
   my $fmode = shift;
-  $numcroaked = 0;
+  $_numcroaked = 0;
   _num($fmode);
-  return undef if $numcroaked;
+  return undef if $_numcroaked;
 
   unless (_SetPolyFillMode($self->{dc}, $fmode)) {
     _croak "ERROR: Cannot select brush! ${\_GetLastError()}";
@@ -1393,9 +1404,9 @@ sub Rect {
     return undef;
   }
 
-  $numcroaked = 0;
+  $_numcroaked = 0;
   for (@_) { _num($_); }
-  return undef if $numcroaked;
+  return undef if $_numcroaked;
 
   my ($x, $y, $w, $h, $ew, $eh) = @_;
 
@@ -1436,9 +1447,9 @@ sub Ellipse {
     return undef;
   }
 
-  $numcroaked = 0;
+  $_numcroaked = 0;
   for (@_) { _num($_); }
-  return undef if $numcroaked;
+  return undef if $_numcroaked;
 
   my ($x, $y, $w, $h) = @_;
 
@@ -1464,9 +1475,9 @@ sub Chord {
     return undef;
   }
 
-  $numcroaked = 0;
+  $_numcroaked = 0;
   for (@_) { _num($_); }
-  return undef if $numcroaked;
+  return undef if $_numcroaked;
 
   my ($x, $y, $w, $h, $a1, $a2) = @_;
 
@@ -1509,9 +1520,9 @@ sub Pie {
     return undef;
   }
 
-  $numcroaked = 0;
+  $_numcroaked = 0;
   for (@_) { _num($_); }
-  return undef if $numcroaked;
+  return undef if $_numcroaked;
 
   my ($x, $y, $w, $h, $a1, $a2) = @_;
 
@@ -1549,9 +1560,9 @@ sub Move {
     return undef;
   }
 
-  $numcroaked = 0;
+  $_numcroaked = 0;
   for (@_) { _num($_); }
-  return undef if $numcroaked;
+  return undef if $_numcroaked;
 
   my ($x, $y) = @_;
 
@@ -1576,9 +1587,9 @@ sub Arc {
     return undef;
   }
 
-  $numcroaked = 0;
+  $_numcroaked = 0;
   for (@_) { _num($_); }
-  return undef if $numcroaked;
+  return undef if $_numcroaked;
 
   my ($x, $y, $w, $h, $a1, $a2) = @_;
 
@@ -1616,9 +1627,9 @@ sub ArcTo {
     return undef;
   }
 
-  $numcroaked = 0;
+  $_numcroaked = 0;
   for (@_) { _num($_); }
-  return undef if $numcroaked;
+  return undef if $_numcroaked;
 
   my ($x, $y, $w, $h, $a1, $a2) = @_;
 
@@ -1655,9 +1666,9 @@ sub Line {
     return undef;
   }
 
-  $numcroaked = 0;
+  $_numcroaked = 0;
   for (@_) { _num($_); }
-  return undef if $numcroaked;
+  return undef if $_numcroaked;
 
   my (@args) = @_;
   my $cnt = 1;
@@ -1684,9 +1695,9 @@ sub LineTo {
     return undef;
   }
 
-  $numcroaked = 0;
+  $_numcroaked = 0;
   for (@_) { _num($_); }
-  return undef if $numcroaked;
+  return undef if $_numcroaked;
 
   my (@args) = @_;
   my ($cnt) = 1;
@@ -1713,9 +1724,9 @@ sub Poly {
     return undef;
   }
 
-  $numcroaked = 0;
+  $_numcroaked = 0;
   for (@_) { _num($_); }
-  return undef if $numcroaked;
+  return undef if $_numcroaked;
 
   my (@args) = @_;
   my ($cnt) = 1;
@@ -1742,9 +1753,9 @@ sub Bezier {
     return undef;
   }
 
-  $numcroaked = 0;
+  $_numcroaked = 0;
   for (@_) { _num($_); }
-  return undef if $numcroaked;
+  return undef if $_numcroaked;
 
   my (@args) = @_;
   my ($cnt) = 1;
@@ -1771,9 +1782,9 @@ sub BezierTo {
     return undef;
   }
 
-  $numcroaked = 0;
+  $_numcroaked = 0;
   for (@_) { _num($_); }
-  return undef if $numcroaked;
+  return undef if $_numcroaked;
 
   my (@args) = @_;
   my ($cnt) = 1;
@@ -1870,9 +1881,9 @@ sub PClip {
   }
 
   my $mode = shift;
-  $numcroaked = 0;
+  $_numcroaked = 0;
   _num($mode);
-  return undef if $numcroaked;
+  return undef if $_numcroaked;
 
   if ($mode == CR_OFF) {
     unless (_DeleteClipPath($self->{dc})) {
@@ -1902,37 +1913,35 @@ sub EBar {
     return undef;
   }
 
-  if ($#_ > 4) {
+  if ($#_ > 5) {
     _carp "WARNING: Too many actual parameters!\n"; 
   }
 
-  my ($string, $flags, $nbw, $bh, $fonth) = @_;
+  my ($string, $x, $y, $flags, $baw, $bah) = @_;
 
-  $numcroaked = 0;
-  unless(_num($flags)) { $flags = EB_128X|EB_TXT; }
-  unless(_num($nbw)) { $nbw = 0.54; }
-  unless(_num($bh)) { $bh = 20; }
-  unless(_num($fonth)) { $fonth = 0; }
-  return undef if $numcroaked;
+  $_numcroaked = 0;
+  unless(_num($x)) { $x = 0; }
+  unless(_num($y)) { $y = 0; }
+  unless(_num($flags)) { $flags = EB_128SMART | EB_TXT; }
+  unless(_num($baw)) { $baw = 0.54; }
+  unless(_num($bah)) { $bah = 20; }
+  return undef if $_numcroaked;
 
-  my ($chk1, $chk2, $error) = (0, 0, 0);
-
-  my $barmeta = _EBar($self->{dc}, $string, $self->_pts2p($nbw), $self->_pts2p($bh), $flags, $chk1, $chk2, $fonth, $error);
-  unless ($barmeta) {
+  my $error = _EBar($self->{dc}, $string, $self->_xun2p($x), $self->_yun2p($y), $flags, $self->_pts2p($baw), $self->_pts2p($bah));
+  unless ($error == 0) {
     my @errmessage;
     $errmessage[1]  = "Select barcode standard!\n";
     $errmessage[2]  = "Unsupported character in barcode string!\n";
     $errmessage[4]  = "Wrong barcode string size!\n";
     $errmessage[8]  = "GDI error!\n";
     $errmessage[16] = "Memory allocation error!\n";
-    $errmessage[32] = "Could not load EBar.dll function!\n";
+    $errmessage[32] = "Unknown error!\n";
+    $errmessage[64] = "Could not load ebar.dll function!\n";
     _croak "ERROR: ".$errmessage[$error];
     return undef;
   }
 
-  $self->{imager}->{$barmeta} = 0;
-
-  return wantarray ? ($barmeta, $chk1, $chk2, $error) : $barmeta;
+  return 1;
 
 }
 
@@ -2068,10 +2077,10 @@ sub Meta {
     $fname = "";
   }
 
-  $numcroaked = 0;
+  $_numcroaked = 0;
   _num($width);
   _num($height);
-  return undef if $numcroaked;
+  return undef if $_numcroaked;
 
   if (!defined($width) or !defined($height)) {
     $width = 0;
@@ -2179,9 +2188,9 @@ sub Caps {
   }
 
   my $index = shift;
-  $numcroaked = 0;
+  $_numcroaked = 0;
   _num($index);
-  return undef if $numcroaked;
+  return undef if $_numcroaked;
 
   return _GetDeviceCaps($self->{dc}, $index);
 
@@ -2318,8 +2327,8 @@ B<4.> For PDF support, install I<Ghostscript> and set path to it's B<\bin>
 directory. You may get this PostScript interpreter form
 I<http://sourceforge.net>.
 
-B<5.> For Barcode support, install B<I<EBar>>. For information about obtaining
-B<I<EBar>> - visit I<http://www.wasx.net> or send me an e-mail to
+B<5.> For Barcode support, install B<I<ebar>>. For information about obtaining
+B<I<ebar>> - visit I<http://www.wasx.net> or send me an e-mail to
 I<admin@wasx.net>.
 
 B<6.> Enjoy it ;)
@@ -2765,7 +2774,7 @@ Horizontal and vertical cross-hatch
 
 45-degree crosshatch.
 
-See also L</Pen>.
+See also L</Pen> and L</EBar>.
 
 =head2 Caps
 
@@ -3023,7 +3032,7 @@ See also L</new>, L</Image>, L</MetaEnd>, L</EBar> and L</file>.
 
   $dc->Color($b, $g, $b);
 
-The B<Color> method sets the text and barcode color to the specified color.
+The B<Color> method sets the text to the specified color.
 
 See also L</Write>, L</Font> and L</EBar>.
 
@@ -3045,60 +3054,52 @@ See also L</debug*>.
 
 =head2 EBar
 
-  $image = $dc->EBar($string, [$flags, [$nbw, [$bh, [$fonth]]]]);
-  ($image, $chk1, $chk2, $error) = $dc->EBar($string, [$flags, [$nbw, [$bh, [$fonth]]]]);
+  $dc->EBar($string, $x, $y, $flags, $baw, $bah);
 
-The B<EBar> method creates barcode and returns handle to it's image. Use
-B<Close> method to unload it from memory. B<$string> to be encoded, B<$flags>
-see below, B<$nbw> - narrowest bar width, B<$bh> - bar height, B<$fonth> -
-handle to a font. B<$chk1> and B<$chk2> - returned check character, B<$error> -
-returned errorcode.
+The B<EBar> method draws barcode. Uses B<L</Brush>> to fill the bars,
+current B<L</Font>> for the text and B<L</Color>> for the text color.
+B<$string> string to encode, B<$x> drawing x origin, B<$y> drawing y origin,
+B<$flags> barcode mode flags, B<$baw> narrowest bar width in pts, B<$bah> bar
+height  in pts.
 
-  Flags:
+  Mode flags:
 
-  EB_25MATRIX			= 0x00000001
-  EB_25INT			= 0x00000002
-  EB_25IND			= 0x00000004
-  EB_25IATA			= 0x00000008
+  EB_25MATRIX	- 2 of 5 Matrix
+  EB_25INTER	- 2 of 5 Interleaved
+  EB_25IND	- 2 of 5 Industrial
+  EB_25IATA	- 2 of 5 IATA
 
-  EB_27				= 0x00000010
+  EB_27		- 2 of 7 (aka CODABAR)
 
-  EB_39				= 0x00000020
-  EB_39EX			= 0x00000040
-  EB_39DUMB			= 0x00000080
+  EB_39STD	- 3 of 9
+  EB_39EXT	- 3 of 9 extended
+  EB_39DUMB	- 3 of 9 "dumb" (allows to pass asterixes *)
 
-  EB_93				= 0x00000100
+  EB_93		- 9 of 3
 
-  EB_128X			= 0x00000200
-  EB_128A			= 0x00000400
-  EB_128B			= 0x00000800
-  EB_128C			= 0x00001000
-  EB_128S			= 0x00002000
-  EB_128EAN			= 0x00004000
+  EB_128SMART	- Code 128 "Smart" (smallest possible with shifting and code changes)
+  EB_128A	- Code 128 A
+  EB_128B	- Code 128 B
+  EB_128C	- Code 128 C
+  EB_128SHFT	- Allow shifting (for 128A, 128B, 128C)
+  EB_128EAN	- EAN fnc (for 128SMART, 128A, 128B, 128C)
 
-  EB_EAN13			= 0x00008000
-  EB_UPCA			= 0x00010000
-  EB_EAN8			= 0x00020000
-  EB_UPCE			= 0x00040000
-  EB_ISBN			= 0x00080000
-  EB_ISBN2			= 0x00100000
-  EB_ISSN			= 0x00200000
-  EB_AD2			= 0x00400000
-  EB_AD5			= 0x00800000
+  EB_EAN13	- EAN-13
+  EB_UPCA	- UPC-A
+  EB_EAN8	- EAN-8
+  EB_UPCE	- UPC-E
+  EB_ISBN	- ISBN
+  EB_ISBN2	- ISBN (reserved)
+  EB_ISSN	- ISSN
 
-  EB_CHK			= 0x01000000
-  EB_TXT			= 0x02000000
+  EB_AD2	- 2 digit addon (for EAN13, EAN8, UPCA, UPCE, ISSN, ISBN, ISBN2 modes)
+  EB_AD5	- 5 digit addon (for EAN13, EAN8, UPCA, UPCE, ISSN, ISBN, ISBN2 modes)
 
-  Errorcodes (for debug level 2, otherwise would be dead by now):
+  EB_CHK	- With optional check character (for 25, 39 modes)
 
-  0  - Success;
-  1  - Select barcode standard;
-  2  - Unsupported character in barcode string;
-  4  - Wrong barcode string size;
-  8  - GDI error;
-  16 - Memory allocation error;
+  EB_TXT	- Draw text (for all codes)
 
-See also L</Image> and L</Close>.
+See also L</Brush>, L</Font> and L</Color>.
 
 =head2 Ellipse
 
@@ -3209,7 +3210,7 @@ Defined character set constants:
   EASTEUROPE			= 238
   OEM				= 255
 
-See also L</Write>, and L</Color>.
+See also L</Write>, L</Color> and L</EBar>.
 
 =head2 Image
 
@@ -3759,6 +3760,9 @@ L<Win32::Printer::Enum>, Win32 Platform SDK GDI documentation.
 B<Edgars Binans E<lt>admin@wasx.netE<gt>. http://www.wasx.net>
 
 =head1 COPYRIGHT AND LICENSE
+
+This library may use B<I<ebar>> for barcode support. Download B<I<ebar>> from
+L<http://www.wasx.net>. See website on license details.
 
 This library may use I<FreeImage>, a free, open source image library
 supporting all common bitmap formats. Get your free copy from 

@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------------*\
 | Win32::Printer                                                               |
-| V 0.8.1 (2004-06-22)                                                         |
+| V 0.8.2 (2004-08-06)                                                         |
 | Copyright (C) 2003-2004 Edgars Binans <admin@wasx.net>                       |
 | http://www.wasx.net                                                          |
 \*----------------------------------------------------------------------------*/
@@ -10,7 +10,7 @@
 #include "XSUB.h"
 
 #ifdef EBAR
-#include "EBar.h"
+#include "ebarwinc.h"
 #endif
 
 #ifdef FREE
@@ -369,6 +369,20 @@ _SetWorldTransform(hdc, eM11, eM12, eM21, eM22, eDx, eDy)
       Xform.eDx = eDx;
       Xform.eDy = eDy;
       RETVAL = SetWorldTransform(hdc, &Xform);
+    OUTPUT:
+      RETVAL
+
+int
+_IsNT()
+    CODE:
+      OSVERSIONINFO osi;
+      osi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+      GetVersionEx(&osi);
+      if (osi.dwPlatformId == VER_PLATFORM_WIN32_NT) {
+        RETVAL = 1;
+      } else {
+        RETVAL = 0;
+      }
     OUTPUT:
       RETVAL
 
@@ -877,52 +891,43 @@ _GetWinMetaFile(hdc, lpszMetaFile)
     OUTPUT:
       RETVAL
 
-HENHMETAFILE
-_EBar(hdc, string, nbw, bh, flags, chk1, chk2, hfont, error)
+int
+_EBar(hdc, string, x, y, flags, baw, bah)
       HDC hdc;
       LPTSTR string;
-      unsigned int nbw;
-      unsigned int bh;
-      int flags;
-      char chk1;
-      char chk2;
-      HFONT hfont;
-      int error;
+      int x;
+      int y;
+      unsigned flags;
+      int baw;
+      int bah;
     PREINIT:
 #ifdef EBAR
       ebc_t ebc;
+      HPEN pen;
+      HPEN prepen;
 #endif
     CODE:
       RETVAL = NULL;
 #ifdef EBAR
       ebc.hdc = hdc;
-      ebc.nbw = nbw;
-      ebc.bh = bh;
       ebc.flags = flags;
-      ebc.hfont = hfont;
-      ebc.color = GetTextColor(hdc);
-      ebc.file = NULL;
-      if (!hfont) {
-         ebc.font = NULL;
-         ebc.size = - (8 * GetDeviceCaps(hdc, LOGPIXELSY)) / 72;
-         ebc.weight = FW_NORMAL;
-      }
+      ebc.baw = baw;
+      ebc.bah = bah;
       __try {
-         RETVAL = EBar(&ebc, string);
-         chk1 = ebc.chk1;
-         chk2 = ebc.chk2;
-         error = ebc.error;
+         pen = CreatePen(PS_NULL, 1, 0xFFFFFFFF);
+         prepen = SelectObject(hdc, pen);
+         RETVAL = EBar(&ebc, string, x, y);
+         SelectObject(hdc, prepen);
+DeleteObject(pen);
+         CreatePen(PS_NULL, 1, 0xFFFFFFFF);
       }
       __except (exfilt()) {
-         error = 32;
+         RETVAL = 64;
       }
 #else
       croak("EBar is not supported in this build!\n");
 #endif
     OUTPUT:
-      chk1
-      chk2
-      error
       RETVAL
 
 HENHMETAFILE
