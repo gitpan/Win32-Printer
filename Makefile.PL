@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------#
 #  Win32::Printer Maker                                                        #
-#  Edgars Binans <admin@was.net>                                               #
+#  Edgars Binans <admin@wasx.net>                                              #
 #------------------------------------------------------------------------------#
 
 use strict;
@@ -11,34 +11,43 @@ use Config;
 
 my ($inc, $lib, $lin, $ccf) = ("", "", "", "");
 
-print "Inlude FreeImage image support? [y]: ";
-my $in = "y";
-$in = <STDIN>;
-if ($in !~ /n/) {
-  $inc = '-I.\3PLibs\FreeImage ';
-  $lib = '-l.\3PLibs\FreeImage\FreeImage.lib ';
-  $lin = '-delayload:FreeImage.dll ';
-  $ccf = '-DFREE ';
-}
+if ($#ARGV != -1) {
 
-print "Inlude Ghostscript PDF support? [y]: ";
-$in = "y";
-$in = <STDIN>;
-if ($in !~ /n/) {
-  $inc .= '-I.\3PLibs\Ghostscript ';
-  $lib .= '-l.\3PLibs\Ghostscript\gsdll32.lib ';
-  $lin .= '-delayload:gsdll32.dll ';
-  $ccf .= '-DGHOST ';
-}
+  print "Inlude FreeImage image support? [y]: ";
+  my $in = "y";
+  $in = <STDIN>;
+  if ($in !~ /n/) {
+    $inc = '-I.\3PLibs\FreeImage ';
+    $lib = '-l.\3PLibs\FreeImage\FreeImage.lib ';
+    $lin = '-delayload:FreeImage.dll ';
+    $ccf = '-DFREE ';
+  }
 
-print "Inlude EBar barcode support? [y]: ";
-$in = "y";
-$in = <STDIN>;
-if ($in !~ /n/) {
-  $inc .= '-I.\3PLibs\EBar';
-  $lib .= '-l.\3PLibs\EBar\EBar.lib';
-  $lin .= '-delayload:EBar.dll';
-  $ccf .= '-DEBAR';
+  print "Inlude Ghostscript PDF support? [y]: ";
+  $in = "y";
+  $in = <STDIN>;
+  if ($in !~ /n/) {
+    $inc .= '-I.\3PLibs\Ghostscript ';
+    $lib .= '-l.\3PLibs\Ghostscript\gsdll32.lib ';
+    $lin .= '-delayload:gsdll32.dll ';
+    $ccf .= '-DGHOST ';
+    print "\nDO NOT FORGET TO SET A Postscript PRINTER AS DEFAULT FOR THE TESTS TO SUCCEED!\n\n";
+  }
+
+  print "Inlude EBar barcode support? [y]: ";
+  $in = "y";
+  $in = <STDIN>;
+  if ($in !~ /n/) {
+    $inc .= '-I.\3PLibs\EBar';
+    $lib .= '-l.\3PLibs\EBar\EBar.lib';
+    $lin .= '-delayload:EBar.dll';
+    $ccf .= '-DEBAR';
+  }
+
+} else {
+
+  print "\nDEFAULT BUILD OPTIONS - W/O 3PLibs (SET ANY ARGUMENT TO INVOKE THE PROMPT!)\n\n";
+
 }
 
 WriteMakefile( 

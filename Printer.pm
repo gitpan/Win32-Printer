@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------#
 # Win32::Printer                                                               #
-# V 0.8.0 (2004-04-21)                                                         #
+# V 0.8.1 (2004-06-22)                                                         #
 # Copyright (C) 2003-2004 Edgars Binans <admin@wasx.net>                       #
 # http://www.wasx.net                                                          #
 #------------------------------------------------------------------------------#
@@ -17,7 +17,7 @@ require Exporter;
 
 use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD $debuglevel $numcroaked );
 
-$VERSION = '0.8.0';
+$VERSION = '0.8.1';
 
 @ISA = qw( Exporter );
 
@@ -380,37 +380,6 @@ sub A3_EXTRA_TRANSVERSE		{ 68; }
 sub PORTRAIT			{ 1; }
 sub LANDSCAPE			{ 2; }
 
-# Font flags
-sub OUT_DEFAULT_PRECIS		{ 0; }
-sub OUT_STRING_PRECIS		{ 1; }
-sub OUT_CHARACTER_PRECIS	{ 2; }
-sub OUT_STROKE_PRECIS		{ 3; }
-sub OUT_TT_PRECIS		{ 4; }
-sub OUT_DEVICE_PRECIS		{ 5; }
-sub OUT_RASTER_PRECIS		{ 6; }
-sub OUT_TT_ONLY_PRECIS		{ 7; }
-sub OUT_OUTLINE_PRECIS		{ 8; }
-
-sub CLIP_DEFAULT_PRECIS		{ 0; }
-sub CLIP_CHARACTER_PRECIS	{ 1; }
-sub CLIP_STROKE_PRECIS		{ 2; }
-sub CLIP_MASK			{ 0xF; }
-sub CLIP_LH_ANGLES		{ (1<<4); }
-sub CLIP_TT_ALWAYS		{ (2<<4); }
-sub CLIP_EMBEDDED		{ (8<<4); }
-
-sub DEFAULT_QUALITY		{ 0; }
-sub DRAFT_QUALITY		{ 1; }
-sub PROOF_QUALITY		{ 2; }
-sub NONANTIALIASED_QUALITY	{ 3; }
-sub ANTIALIASED_QUALITY		{ 4; }
-
-sub DEFAULT_PITCH		{ 0; }
-sub FIXED_PITCH			{ 1; }
-sub VARIABLE_PITCH		{ 2; }
-
-sub MONO_FONT			{ 8; }
-
 # Character sets
 sub ANSI			{ 0; }
 sub DEFAULT			{ 1; }
@@ -434,30 +403,8 @@ sub RUSSIAN			{ 204; }
 sub MAC				{ 77; }
 sub BALTIC			{ 186; }
 
-# Font Families
-sub FF_DONTCARE			{ (0<<4); }
-sub FF_ROMAN			{ (1<<4); }
-sub FF_SWISS			{ (2<<4); }
-sub FF_MODERN			{ (3<<4); }
-sub FF_SCRIPT			{ (4<<4); }
-sub FF_DECORATIVE		{ (5<<4); }
-
-# Font Weights
-sub FW_DONTCARE			{ 0; }
-sub FW_THIN			{ 100; }
-sub FW_EXTRALIGHT		{ 200; }
-sub FW_LIGHT			{ 300; }
 sub FW_NORMAL			{ 400; }
-sub FW_MEDIUM			{ 500; }
-sub FW_SEMIBOLD			{ 600; }
 sub FW_BOLD			{ 700; }
-sub FW_EXTRABOLD		{ 800; }
-sub FW_HEAVY			{ 900; }
-sub FW_ULTRALIGHT		{ 200; }
-sub FW_REGULAR			{ 400; }
-sub FW_DEMIBOLD			{ 600; }
-sub FW_ULTRABOLD		{ 800; }
-sub FW_BLACK			{ 900; }
 
 #------------------------------------------------------------------------------#
 
@@ -1081,50 +1028,61 @@ sub Font {
   } else {
 
     my ($face, $size, $angle, $charset) = @_;
+    my ($escape, $orient);
+    if (defined $angle) {
+      if ($angle =~ /^ARRAY/) {
+        $escape = $$angle[0];
+        $orient = $$angle[1];
+      } else {
+        $escape = $angle;
+        $orient = $angle;
+      }
+    }
     $numcroaked = 0;
-    $face = 'Courier' if !defined $face;
+    $face = '' if !defined $face;
     $size = 10 unless _num($size);
-    $angle = 0 unless _num($angle);
+    $escape = 0 unless _num($escape);
+    $orient = 0 unless _num($orient);
     $charset = DEFAULT unless _num($charset);
     return undef if $numcroaked;
 
-    my $fontid = "$face\_$size\_$angle\_$charset";
+    my $fontid = "$face\_$size\_$escape\_$orient\_$charset";
 
     if (!$self->{obj}->{$fontid}) {
 
-      $angle *= 10;
+      $escape *= 10;
+      $orient *= 10;
     
       my ($opt1, $opt2, $opt3, $opt4) = (FW_NORMAL, 0, 0, 0);
-      if ($face =~ /bold/i ) {
+      if ($face =~ s/ bold//i ) {
         $opt1 = FW_BOLD;
-        $face =~ s/\s*bold\s*//i;
       }
-      if ( $face =~ /italic/i ){
+      if ( $face =~ s/ italic//i ){
         $opt2 = 1;
-        $face =~ s/\s*italic\s*//i;
       }
-      if ( $face =~ /underline/i ){
+      if ( $face =~ s/ underline//i ){
         $opt3 = 1;
-        $face =~ s/\s*underline\s*//i;
       }
-      if ( $face =~ /strike/i ){
+      if ( $face =~ s/ strike//i ){
         $opt4 = 1;
-        $face =~ s/\s*strike\s*//i;
       }
 
       $face =~ s/^\s*//;
       $face =~ s/\s*$//;
 
-      $self->{obj}->{$fontid} = _CreateFont(-$self->_pts2p($size), 0, $angle, $angle,
-                                $opt1, $opt2, $opt3, $opt4, $charset,
-                                OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-                                DEFAULT_QUALITY, DEFAULT_PITCH, $face);
+      $self->{obj}->{$fontid} = _CreateFont($self->_pts2p($size), $escape, $orient, $opt1, $opt2, $opt3,
+                                            $opt4, $charset, $face);
 
       if ($self->{obj}->{$fontid}) {
 
         unless (_SelectObject($self->{dc}, $self->{obj}->{$fontid})) {
           _croak "ERROR: Cannot select font! ${\_GetLastError()}";
           return undef;
+        }
+
+        my $realface = _GetTextFace($self->{dc});
+        if (($face) && ($realface !~ /^$face$/)) {
+          _carp "WARNING: Cannot select desired font face - \"$realface\" selected!\n";
         }
 
         return $self->{obj}->{$fontid};
@@ -1951,7 +1909,7 @@ sub EBar {
   my ($string, $flags, $nbw, $bh, $fonth) = @_;
 
   $numcroaked = 0;
-  unless(_num($flags)) { $flags = EB_128X; }
+  unless(_num($flags)) { $flags = EB_128X|EB_TXT; }
   unless(_num($nbw)) { $nbw = 0.54; }
   unless(_num($bh)) { $bh = 20; }
   unless(_num($fonth)) { $fonth = 0; }
@@ -2414,7 +2372,7 @@ yourself.
 
 See also L</copies>.
 
-=head3 color
+=head3 color*
 
 Switches between color and monochrome on color printers. Following are the
 possible values: 
@@ -2745,63 +2703,6 @@ according to the center of bounding rectangle. The current point is updated.
 
 See also L</Move>, L</Arc>, L</Ellipse>, L</Chord> and L</Pie>.
 
-=head2 EBar
-
-  $image = $dc->EBar($string, [$flags, [$nbw, [$bh, [$fonth]]]]);
-  ($image, $chk1, $chk2, $error) = $dc->EBar($string, [$flags, [$nbw, [$bh, [$fonth]]]]);
-
-The B<EBar> method creates barcode and returns handle to it's image. Use
-B<Close> method to unload it from memory. B<$string> to be encoded, B<$flags>
-see below, B<$nbw> - narrowest bar width, B<$bh> - bar height, B<$fonth> -
-handle to a font. B<$chk1> and B<$chk2> - returned check character, B<$error> -
-returned errorcode.
-
-  Flags:
-
-  EB_25MATRIX			= 0x00000001
-  EB_25INT			= 0x00000002
-  EB_25IND			= 0x00000004
-  EB_25IATA			= 0x00000008
-
-  EB_27				= 0x00000010
-
-  EB_39				= 0x00000020
-  EB_39EX			= 0x00000040
-  EB_39DUMB			= 0x00000080
-
-  EB_93				= 0x00000100
-
-  EB_128X			= 0x00000200
-  EB_128A			= 0x00000400
-  EB_128B			= 0x00000800
-  EB_128C			= 0x00001000
-  EB_128S			= 0x00002000
-  EB_128EAN			= 0x00004000
-
-  EB_EAN13			= 0x00008000
-  EB_UPCA			= 0x00010000
-  EB_EAN8			= 0x00020000
-  EB_UPCE			= 0x00040000
-  EB_ISBN			= 0x00080000
-  EB_ISBN2			= 0x00100000
-  EB_ISSN			= 0x00200000
-  EB_AD2			= 0x00400000
-  EB_AD5			= 0x00800000
-
-  EB_CHK			= 0x01000000
-  EB_TXT			= 0x02000000
-
-  Errorcodes (for debug level 2, otherwise would be dead by now):
-
-  0  - Success;
-  1  - Select barcode standard;
-  2  - Unsupported character in barcode string;
-  4  - Wrong barcode string size;
-  8  - GDI error;
-  16 - Memory allocation error;
-
-See also L</Image> and L</Close>.
-
 =head2 Bezier
 
   $dc->Bezier(@points);
@@ -3122,9 +3023,9 @@ See also L</new>, L</Image>, L</MetaEnd>, L</EBar> and L</file>.
 
   $dc->Color($b, $g, $b);
 
-The B<Color> method sets the text color to the specified color.
+The B<Color> method sets the text and barcode color to the specified color.
 
-See also L</Write> and L</Font>.
+See also L</Write>, L</Font> and L</EBar>.
 
 =head2 Debug
 
@@ -3141,6 +3042,63 @@ If debug level set to 2- methods return undef value on error.
 MAY INTERFERE WITH DIFFERENT PRINTER OBJECTS!
 
 See also L</debug*>.
+
+=head2 EBar
+
+  $image = $dc->EBar($string, [$flags, [$nbw, [$bh, [$fonth]]]]);
+  ($image, $chk1, $chk2, $error) = $dc->EBar($string, [$flags, [$nbw, [$bh, [$fonth]]]]);
+
+The B<EBar> method creates barcode and returns handle to it's image. Use
+B<Close> method to unload it from memory. B<$string> to be encoded, B<$flags>
+see below, B<$nbw> - narrowest bar width, B<$bh> - bar height, B<$fonth> -
+handle to a font. B<$chk1> and B<$chk2> - returned check character, B<$error> -
+returned errorcode.
+
+  Flags:
+
+  EB_25MATRIX			= 0x00000001
+  EB_25INT			= 0x00000002
+  EB_25IND			= 0x00000004
+  EB_25IATA			= 0x00000008
+
+  EB_27				= 0x00000010
+
+  EB_39				= 0x00000020
+  EB_39EX			= 0x00000040
+  EB_39DUMB			= 0x00000080
+
+  EB_93				= 0x00000100
+
+  EB_128X			= 0x00000200
+  EB_128A			= 0x00000400
+  EB_128B			= 0x00000800
+  EB_128C			= 0x00001000
+  EB_128S			= 0x00002000
+  EB_128EAN			= 0x00004000
+
+  EB_EAN13			= 0x00008000
+  EB_UPCA			= 0x00010000
+  EB_EAN8			= 0x00020000
+  EB_UPCE			= 0x00040000
+  EB_ISBN			= 0x00080000
+  EB_ISBN2			= 0x00100000
+  EB_ISSN			= 0x00200000
+  EB_AD2			= 0x00400000
+  EB_AD5			= 0x00800000
+
+  EB_CHK			= 0x01000000
+  EB_TXT			= 0x02000000
+
+  Errorcodes (for debug level 2, otherwise would be dead by now):
+
+  0  - Success;
+  1  - Select barcode standard;
+  2  - Unsupported character in barcode string;
+  4  - Wrong barcode string size;
+  8  - GDI error;
+  16 - Memory allocation error;
+
+See also L</Image> and L</Close>.
 
 =head2 Ellipse
 
@@ -3186,6 +3144,7 @@ See also L</PDraw> and L</Poly>.
 =head2 Font
 
   $font_handle = $dc->Font([$face, [$size, [$angle, [$charset]]]]);
+  $font_handle = $dc->Font([$face, [$size, [\[$escapement, [orientation]\], [$charset]]]]);
 
 B<or>
 
@@ -3195,9 +3154,32 @@ The B<Font> method creates and selects a logical font that has specific
 characteristics and returns handle to it B<or> selects given font by it's
 handle. Fontsize is set in pts.
 
+B<IMPORTANT!!!> First font (e.g. "Arial") that matches desired attributes is selected if desired
+font is not found. Reason of that may be raster font, wrong font name, character set unsupported by font etc.
+B<Warning is issued!>
+
+If B<$angle> is array reference then function looks for B<($escapement, [orientation])>
+
+Example:
+
+  $fh = $dc->Font("Arial", 10, [-90, 0]); # Same as:
+  $fh = $dc->Font("Arial", 10, [-90]);    # ...prints characters cascaded vertically
+
+B<$escapement> - Specifies the angle in degrees, between the escapement vector and the x-axis of the device.
+The escapement vector is parallel to the base line of a row of text.
+
+B<Windows NT/2k/XP/...>: You can specify the escapement angle of the string independently of the orientation
+angle of the string's characters.
+
+B<Windows 95/98/Me>: The B<$escapement> member specifies both the escapement and orientation. You should set
+B<$escapement> and B<$orientation> to the same value.
+
+B<$orientation> - Specifies the angle, in degrees, between each character's base line and the x-axis of the
+device.
+
 Defaults to:
 
-  $face = 'Courier';	# fontface
+  $face = '';		# First font (e.g. "Arial") that matches desired attributes
   $size = 10;		# fontsize
   $angle = 0;		# text direction angle in degrees
   $charset = DEFAULT;	# character set code

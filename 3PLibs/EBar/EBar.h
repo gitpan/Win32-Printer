@@ -1,27 +1,4 @@
-////////////////////////////////////////////////////////////////////////////////
-//                                                                            //
-//  This is part of EBar 1.0.0 barcode library                                //
-//  EBar.h 2003-XX-XX                                                         //
-//  Copyright (c) 2003, Edgars Binans                                         //
-//                                                                            //
-////////////////////////////////////////////////////////////////////////////////
-
 #include <windows.h>
-
-#ifdef __cplusplus
-#include <vector>
-using namespace std;
-#endif
-
-#ifdef EB_EXPORTS
-  #define EB_API __declspec(dllexport)
-#else
-  #ifdef EB_STAT
-    #define EB_API
-  #else
-    #define EB_API __declspec(dllimport)
-  #endif
-#endif
 
 #define EB_ESUCCESS	0
 #define EB_ESELECT	1
@@ -64,55 +41,20 @@ using namespace std;
 #define EB_TXT		0x02000000
 
 typedef struct ebc_tag {
-#ifdef __cplusplus
-  ebc_tag() :	hdc	(NULL),
-		nbw	(2),
-		bh	(60),
-		flags	(NULL),
-		chk1	(NULL),
-		chk2	(NULL),
-		hfont	(NULL),
-		font	(NULL),
-		size	(-20),
-		weight	(FW_NORMAL),
-		error	(NULL)
-  { }
-#endif
   HDC		hdc;
   unsigned	nbw;
   unsigned	bh;
   unsigned	flags;
+  char		*file;
   char		chk1;
   char		chk2;
   HFONT		hfont;
   char		*font;
   int		size;
   int		weight;
+  COLORREF	color;
   int		error;
 } ebc_t, *pebc_t;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-  EB_API HENHMETAFILE EBar(pebc_t ebc, char *enstring);
-#ifdef __cplusplus
-}
-#endif
-
-#ifdef __cplusplus
-EB_API BOOL EBar(pebc_t ebc, char *enstring, int x, int y);
-EB_API BOOL EBar(pebc_t ebc, char *enstring, char *file);
-
-class eBar : public ebc_tag {
-  private:
-    typedef vector<HENHMETAFILE> metavector_t;
-    metavector_t metas;
-    metavector_t::iterator meterator;
-  public:
-    EB_API HENHMETAFILE Bar(char *enstring);
-    EB_API BOOL Bar(char *enstring, int x, int y);
-    EB_API BOOL Bar(char *enstring, char *file);
-    EB_API void Delete(HENHMETAFILE delmeta);
-    EB_API ~eBar();
-};
-#endif
+HENHMETAFILE EBar(pebc_t ebc, char *enstring);
+const char *EBarV(void);

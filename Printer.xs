@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------------*\
 | Win32::Printer                                                               |
-| V 0.8.0 (2004-04-21)                                                         |
+| V 0.8.1 (2004-06-22)                                                         |
 | Copyright (C) 2003-2004 Edgars Binans <admin@wasx.net>                       |
 | http://www.wasx.net                                                          |
 \*----------------------------------------------------------------------------*/
@@ -373,23 +373,49 @@ _SetWorldTransform(hdc, eM11, eM12, eM21, eM22, eDx, eDy)
       RETVAL
 
 HFONT
-_CreateFont(nHeight, nWidth, nEscapement, nOrientation, fnWeight, fdwItalic, fdwUnderline, fdwStrikeOut, fdwCharset, fdwOutputPrecision, fdwClipPrecision, fdwQuality, fdwPitchAndFamily, Face)
-      int nHeight;
-      int nWidth;
-      int nEscapement;
-      int nOrientation;
-      int fnWeight;
-      DWORD fdwItalic;
-      DWORD fdwUnderline;
-      DWORD fdwStrikeOut;
-      DWORD fdwCharset;
-      DWORD fdwOutputPrecision;
-      DWORD fdwClipPrecision;
-      DWORD fdwQuality;
-      DWORD fdwPitchAndFamily;
-      LPCTSTR Face;
+_CreateFont(Height, Escapement, Orientation, Weight, Italic, Underline, StrikeOut, CharSet, FaceName)
+      long Height;
+      long Escapement;
+      long Orientation;
+      long Weight;
+      BYTE Italic;
+      BYTE Underline;
+      BYTE StrikeOut;
+      BYTE CharSet;
+      LPCTSTR FaceName;
     CODE:
-      RETVAL = CreateFont(nHeight, nWidth, nEscapement, nOrientation, fnWeight, fdwItalic, fdwUnderline, fdwStrikeOut, fdwCharset, fdwOutputPrecision, fdwClipPrecision, fdwQuality, fdwPitchAndFamily, Face);
+      LOGFONT lf;
+      int len = strlen(FaceName);
+      lf.lfHeight = -Height;
+      lf.lfWidth = 0;
+      lf.lfEscapement = Escapement;
+      lf.lfOrientation = Orientation;
+      lf.lfWeight = Weight;
+      lf.lfItalic = Italic;
+      lf.lfUnderline = Underline;
+      lf.lfStrikeOut = StrikeOut;
+      lf.lfCharSet = CharSet;
+      lf.lfOutPrecision = OUT_DEFAULT_PRECIS;
+      lf.lfClipPrecision = CLIP_DEFAULT_PRECIS;
+      lf.lfQuality = PROOF_QUALITY;
+      lf.lfPitchAndFamily = DEFAULT_PITCH;
+      if (len > 31) {
+        memcpy(lf.lfFaceName, FaceName, 32);
+      } else {
+        memcpy(lf.lfFaceName, FaceName, len + 1);
+      }
+      RETVAL = CreateFontIndirect(&lf);
+    OUTPUT:
+      RETVAL
+
+SV*
+_GetTextFace(hdc)
+      HDC hdc;
+    CODE:
+      char face[32];
+      RETVAL = newSVpvn("", 0);
+      GetTextFace(hdc, 32, face);
+      sv_catpv(RETVAL, face);
     OUTPUT:
       RETVAL
 
@@ -874,6 +900,8 @@ _EBar(hdc, string, nbw, bh, flags, chk1, chk2, hfont, error)
       ebc.bh = bh;
       ebc.flags = flags;
       ebc.hfont = hfont;
+      ebc.color = GetTextColor(hdc);
+      ebc.file = NULL;
       if (!hfont) {
          ebc.font = NULL;
          ebc.size = - (8 * GetDeviceCaps(hdc, LOGPIXELSY)) / 72;
@@ -889,7 +917,7 @@ _EBar(hdc, string, nbw, bh, flags, chk1, chk2, hfont, error)
          error = 32;
       }
 #else
-      croak("EBar is not supported in this build!");
+      croak("EBar is not supported in this build!\n");
 #endif
     OUTPUT:
       chk1
@@ -959,7 +987,7 @@ _LoadBitmap(hdc, BmpFile, Type);
          Image = 0;
       }
 #else
-      croak("FreeImage is not supported in this build!");
+      croak("FreeImage is not supported in this build!\n");
 #endif
     OUTPUT:
       RETVAL
@@ -1298,7 +1326,7 @@ _GhostPDF(ps, pdf)
       }
       __except (exfilt()) { }
 #else
-      croak("Ghostscript is not supported in this build!");
+      croak("Ghostscript is not supported in this build!\n");
 #endif
     OUTPUT:
       RETVAL
@@ -1323,6 +1351,7 @@ _CreateMeta(hdc, file, right, bottom)
         RETVAL = CreateEnhMetaFile(hdc, file, NULL, NULL);
       }
       SetGraphicsMode(RETVAL, GM_ADVANCED);
+      SetBkMode(RETVAL, TRANSPARENT);
     OUTPUT:
       RETVAL
 
