@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------#
 # Win32::Printer                                                               #
-# V 0.7.0 (2004-01-07)                                                         #
+# V 0.7.1 (2004-04-11)                                                         #
 # Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            #
 # http://www.wasx.net                                                          #
 #------------------------------------------------------------------------------#
@@ -15,9 +15,9 @@ use Carp;
 
 require Exporter;
 
-use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD %params @pdfend $debuglevel $numcroaked );
+use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD $debuglevel $numcroaked );
 
-$VERSION = '0.7.0';
+$VERSION = '0.7.1';
 
 @ISA = qw( Exporter );
 
@@ -495,11 +495,12 @@ sub new {
 
   my $self = { };
 
-  bless $self, $class;
+  bless($self, $class);
 
   if ($self->_init(@_)) {
     return $self;
   } else {
+    _croak qq^ERROR: Cannot initialise object!\n^;
     return undef;
   }
 
@@ -511,33 +512,33 @@ sub _init {
 
   my $self = shift;
 
-  (%params) = @_;
+  (%{$self->{params}}) = @_;
 
   $numcroaked = 0;
 
-  if ((!_num($params{'debug'})) or ($params{'debug'} > 2)) {
+  if ((!_num($self->{params}->{'debug'})) or ($self->{params}->{'debug'} > 2)) {
     $debuglevel = 0;
   } else {
-    $debuglevel = $params{'debug'};
+    $debuglevel = $self->{params}->{'debug'};
   }
 
-  for (keys %params) {
+  for (keys %{$self->{params}}) {
     if ($_ !~ /debug|dc|printer|dialog|file|pdf|prompt|copies|collate|minp|maxp|orientation|papersize|duplex|description|unit|source|color|height|width/) {
       _carp qq^WARNING: Unknown attribute "$_"!\n^;
     }
   }
 
   my $dialog;
-  if (_num($params{'dialog'})) {
+  if (_num($self->{params}->{'dialog'})) {
     $dialog = 1;
   } else {
     $dialog = 0;
-    $params{'dialog'} = 0;
+    $self->{params}->{'dialog'} = 0;
   }
 
-  if (defined($params{'file'})) {
-    $params{'file'} =~ s/\//\\/g;
-    my $file = $params{'file'};
+  if (defined($self->{params}->{'file'})) {
+    $self->{params}->{'file'} =~ s/\//\\/g;
+    my $file = $self->{params}->{'file'};
     $file =~ s/(.*\\)//g;
     my $dir = $1;
     unless ($dir) { $dir = '.\\'; }
@@ -547,118 +548,135 @@ sub _init {
     }
   }
 
-  unless (defined $params{'printer'})	{ $params{'printer'}	 = ""; } else { $params{'printer'} =~ s/\//\\/g; }
-  unless (_num($params{'copies'}))	{ $params{'copies'}	 = 1;  }
-  unless (_num($params{'collate'}))	{ $params{'collate'}	 = 1;  }
-  unless (_num($params{'minp'}))	{ $params{'minp'}	 = 0;  }
-  unless (_num($params{'maxp'}))	{ $params{'maxp'}	 = 0;  }
-  unless (_num($params{'orientation'}))	{ $params{'orientation'} = 0;  }
-  unless (_num($params{'papersize'}))	{ $params{'papersize'}	 = 0;  }
-  unless (_num($params{'duplex'}))	{ $params{'duplex'}	 = 0;  }
-  unless (_num($params{'source'}))	{ $params{'source'}	 = 7;  }
-  unless (_num($params{'color'}))	{ $params{'color'}	 = 2;  }
-  unless (_num($params{'height'}))	{ $params{'height'}	 = 0;  }
-  unless (_num($params{'width'}))	{ $params{'width'}	 = 0;  }
+  unless (defined $self->{params}->{'printer'})	{ $self->{params}->{'printer'}	 = ""; } else { $self->{params}->{'printer'} =~ s/\//\\/g; }
+  unless (_num($self->{params}->{'copies'}))	{ $self->{params}->{'copies'}	 = 1;  }
+  unless (_num($self->{params}->{'collate'}))	{ $self->{params}->{'collate'}	 = 1;  }
+  unless (_num($self->{params}->{'minp'}))	{ $self->{params}->{'minp'}	 = 0;  }
+  unless (_num($self->{params}->{'maxp'}))	{ $self->{params}->{'maxp'}	 = 0;  }
+  unless (_num($self->{params}->{'orientation'}))	{ $self->{params}->{'orientation'} = 0;  }
+  unless (_num($self->{params}->{'papersize'}))	{ $self->{params}->{'papersize'}	 = 0;  }
+  unless (_num($self->{params}->{'duplex'}))	{ $self->{params}->{'duplex'}	 = 0;  }
+  unless (_num($self->{params}->{'source'}))	{ $self->{params}->{'source'}	 = 7;  }
+  unless (_num($self->{params}->{'color'}))	{ $self->{params}->{'color'}	 = 2;  }
+  unless (_num($self->{params}->{'height'}))	{ $self->{params}->{'height'}	 = 0;  }
+  unless (_num($self->{params}->{'width'}))	{ $self->{params}->{'width'}	 = 0;  }
 
   return undef if $numcroaked;
 
-  if (($params{'width'}) and (!$params{'height'})) {
-    $params{'width'} = 0;
+  if (($self->{params}->{'width'}) and (!$self->{params}->{'height'})) {
+    $self->{params}->{'width'} = 0;
     _carp qq^WARNING: width attribute used without height attribute - IGNORED!\n^;
   }
-  if ((!$params{'width'}) and ($params{'height'})) {
-    $params{'height'} = 0;
+  if ((!$self->{params}->{'width'}) and ($self->{params}->{'height'})) {
+    $self->{params}->{'height'} = 0;
     _carp qq^WARNING: height attribute used without width attribute - IGNORED!\n^;
   }
 
-  if (($params{'width'} > 0) and ($params{'height'} > 0)) {
-    if (defined($params{'unit'})) {
-      if ($params{'unit'} eq "mm") {
-        $params{'width'} = $params{'width'} * 10;
-        $params{'height'} = $params{'height'} * 10;
-      } elsif ($params{'unit'} eq "cm") {
-        $params{'width'} = $params{'width'} * 100;
-        $params{'height'} = $params{'height'} * 100;
-      } elsif ($params{'unit'} eq "pt") {
-        $params{'width'} = $params{'width'} * 254.09836 / 72;
-        $params{'height'} = $params{'height'} * 254.09836 / 72;
-      } elsif ($params{'unit'} =~ /^\d+\.*\d*$/i) {
-        $params{'width'} = $params{'width'} * 254.09836 / $params{'unit'};
-        $params{'height'} = $params{'height'} * 254.09836 / $params{'unit'};
+  if (($self->{params}->{'width'} > 0) and ($self->{params}->{'height'} > 0)) {
+    if (defined($self->{params}->{'unit'})) {
+      if ($self->{params}->{'unit'} eq "mm") {
+        $self->{params}->{'width'} = $self->{params}->{'width'} * 10;
+        $self->{params}->{'height'} = $self->{params}->{'height'} * 10;
+      } elsif ($self->{params}->{'unit'} eq "cm") {
+        $self->{params}->{'width'} = $self->{params}->{'width'} * 100;
+        $self->{params}->{'height'} = $self->{params}->{'height'} * 100;
+      } elsif ($self->{params}->{'unit'} eq "pt") {
+        $self->{params}->{'width'} = $self->{params}->{'width'} * 254.09836 / 72;
+        $self->{params}->{'height'} = $self->{params}->{'height'} * 254.09836 / 72;
+      } elsif ($self->{params}->{'unit'} =~ /^\d+\.*\d*$/i) {
+        $self->{params}->{'width'} = $self->{params}->{'width'} * 254.09836 / $self->{params}->{'unit'};
+        $self->{params}->{'height'} = $self->{params}->{'height'} * 254.09836 / $self->{params}->{'unit'};
       } else {
-        $params{'width'} = $params{'width'} * 254.09836;
-        $params{'height'} = $params{'height'} * 254.09836;
+        $self->{params}->{'width'} = $self->{params}->{'width'} * 254.09836;
+        $self->{params}->{'height'} = $self->{params}->{'height'} * 254.09836;
       }
     } else {
-      $params{'width'} = $params{'width'} * 254.09836;
-      $params{'height'} = $params{'height'} * 254.09836;
+      $self->{params}->{'width'} = $self->{params}->{'width'} * 254.09836;
+      $self->{params}->{'height'} = $self->{params}->{'height'} * 254.09836;
     }
-  } elsif (($params{'width'} < 0) or ($params{'height'} < 0)) {
-    $params{'width'} = 0;
-    $params{'height'} = 0;
+  } elsif (($self->{params}->{'width'} < 0) or ($self->{params}->{'height'} < 0)) {
+    $self->{params}->{'width'} = 0;
+    $self->{params}->{'height'} = 0;
     _carp qq^WARNING: height, width attributes may not have negative values - IGNORED!\n^;
   }
 
-  if (($dialog) and ((defined($params{'prompt'})) or (defined($params{'file'})))) {
-    $params{'dialog'} = $params{'dialog'} | PRINTTOFILE;
-    undef $params{'prompt'};
+  if (($dialog) and ((defined($self->{params}->{'prompt'})) or (defined($self->{params}->{'file'})))) {
+    $self->{params}->{'dialog'} = $self->{params}->{'dialog'} | PRINTTOFILE;
+    undef $self->{params}->{'prompt'};
   }
 
-  $self->{dc} = _CreatePrinter($params{'printer'}, $dialog, $params{'dialog'}, $params{'copies'}, $params{'collate'}, $params{'minp'}, $params{'maxp'}, $params{'orientation'}, $params{'papersize'}, $params{'duplex'}, $params{'source'}, $params{'color'}, $params{'height'}, $params{'width'});
+  $self->{dc} = _CreatePrinter($self->{params}->{'printer'}, $dialog, $self->{params}->{'dialog'}, $self->{params}->{'copies'}, $self->{params}->{'collate'}, $self->{params}->{'minp'}, $self->{params}->{'maxp'}, $self->{params}->{'orientation'}, $self->{params}->{'papersize'}, $self->{params}->{'duplex'}, $self->{params}->{'source'}, $self->{params}->{'color'}, $self->{params}->{'height'}, $self->{params}->{'width'});
   unless ($self->{dc}) {
     _croak "ERROR: Cannot create printer object! ${\_GetLastError()}";
     return undef;
   }
 
-  unless (defined($self->Unit($params{'unit'}))) { return undef; }
+  unless (defined($self->Unit($self->{params}->{'unit'} || 1))) {
+    _croak "ERROR: Cannot set default units!\n";
+    return undef;
+  }
 
-  $self->{flags} = $params{'dialog'};
+  $self->{flags} = $self->{params}->{'dialog'};
 
-  if (($self->{flags} & PRINTTOFILE) || (defined($params{'prompt'}))) {
+  if (($self->{flags} & PRINTTOFILE) || (defined($self->{params}->{'prompt'}))) {
     my ($suggest, $indir) = ("", "");
-    if ((defined($params{'description'})) and ($params{'description'} ne "")) {
-      $suggest = $params{'description'};
+    if (defined($self->{params}->{'file'})) {
+      $suggest = $self->{params}->{'file'};
+      $suggest =~ s/(.*\\)//g;
+      $indir = $1 || "";
+    } elsif ((defined($self->{params}->{'description'})) and ($self->{params}->{'description'} ne "")) {
+      $suggest = $self->{params}->{'description'};
       $suggest =~ s/[\"\*\/\:\<\>\?\\\|]|[\x00-\x1f]/-/g;
       $suggest =~ s/\..*?$|\s\s|^\s|\s$//g;
-    } elsif (defined($params{'file'})) {
-      $suggest = $params{'file'};
-      $suggest =~ s/(.*\\)//g;
-      $indir = $1;
     } else {
       $suggest = "Printer";
     }
-    if (defined($params{'pdf'})) {
-      my $ext = $params{'file'} ? "" : ".pdf";
-      $params{'file'} = _SaveAs(2, $suggest.$ext, $indir);
+    if (defined($self->{params}->{'pdf'})) {
+      my $ext = $self->{params}->{'file'} ? "" : ".pdf";
+      $self->{params}->{'file'} = _SaveAs(2, $suggest.$ext, $indir);
     } else {
-      my $ext = $params{'file'} ? "" : ".prn";
-      $params{'file'} = _SaveAs(1, $suggest.$ext, $indir);
+      my $ext = $self->{params}->{'file'} ? "" : ".prn";
+      $self->{params}->{'file'} = _SaveAs(1, $suggest.$ext, $indir);
     }
-    if ($params{'file'} eq "") {
+    if ($self->{params}->{'file'} eq "") {
       _croak "ERROR: Save to file failed! ${\_GetLastError()}";
       return undef;
     }
   }
 
-  if ((defined($params{'pdf'})) and (!defined($params{'file'}))) {
-    delete $params{'pdf'};
+  if ((defined($self->{params}->{'pdf'})) and (!defined($self->{params}->{'file'}))) {
+    delete $self->{params}->{'pdf'};
     _carp qq^WARNING: pdf attribute used without file attribute - IGNORED!\n^;
   }
 
-  $self->{copies}  = $params{'copies'};
-  $self->{collate} = $params{'collate'};
-  $self->{minp}    = $params{'minp'};
-  $self->{maxp}    = $params{'maxp'};
+  $self->{copies}  = $self->{params}->{'copies'};
+  $self->{collate} = $self->{params}->{'collate'};
+  $self->{minp}    = $self->{params}->{'minp'};
+  $self->{maxp}    = $self->{params}->{'maxp'};
 
-  if (!defined($params{'dc'})) {
-    unless (defined($self->Start($params{description}, $params{'file'}))) { return undef; }
+  if (!defined($self->{params}->{'dc'})) {
+    unless (defined($self->Start($self->{params}->{description}, $self->{params}->{'file'}))) {
+      _croak "ERROR: Cannot start default document!\n";
+      return undef;
+    }
   }
 
-  unless (defined($self->Space(1, 0, 0, 1, 0, 0))) { return undef; }
-  unless (defined($self->Pen(1, 0, 0, 0))) { return undef; }
-  unless (defined($self->Color(0, 0, 0))) { return undef; }
-  unless (defined($self->Brush(128, 128, 128))) { return undef; }
-  unless (defined($self->Font($self->Font()))) { return undef; }
+  unless (defined($self->Pen(1, 0, 0, 0))) {
+    _croak "ERROR: Cannot create default pen!\n";
+    return undef;
+  }
+  unless (defined($self->Color(0, 0, 0))) {
+    _croak "ERROR: Cannot set default color!\n";
+    return undef;
+  }
+  unless (defined($self->Brush(128, 128, 128))) {
+    _croak "ERROR: Cannot create default brush!\n";
+    return undef;
+  }
+  unless (defined($self->Font())) {
+    _croak "ERROR: Cannot create default font!\n";
+    return undef;
+  }
 
   return 1;
 
@@ -735,36 +753,38 @@ sub _pts2p {
 
 sub _pdf {
 
-  if ((defined($params{'pdf'})) and (defined($pdfend[0]))) {
+  my $self = shift;
 
-    my $olderr;
-    if ($params{'pdf'} == 0) {
-      open $olderr, ">&STDERR";
-      open (STDERR, ">nul");
-      select STDERR; $| = 1;
+  if ((defined($self->{params}->{'pdf'})) and (defined($self->{pdfend0}))) {
+
+    if ($self->{params}->{'pdf'} == 0) {
+      open OLDERR, ">&STDERR";
+      open STDERR, ">nul" or die;
     }
-    if ($params{'pdf'} == 1) {
-      open $olderr, ">&STDERR";
-      open (STDERR, ">$pdfend[1].log");
-      select STDERR; $| = 1;
+    if ($self->{params}->{'pdf'} == 1) {
+      open OLDERR, ">&STDERR" or die;
+      open STDERR, ">$self->{pdfend1}.log";
     }
 
-    unless (Win32::Printer::_GhostPDF(@pdfend)) {
-      if (($params{'pdf'} == 0) || ($params{'pdf'} == 1)) {
+    unless (Win32::Printer::_GhostPDF($self->{pdfend0}, $self->{pdfend1})) {
+      if (($self->{params}->{'pdf'} == 0) || ($self->{params}->{'pdf'} == 1)) {
         close STDERR;
-        open STDERR, ">&", $olderr;
+        open STDERR, ">&OLDERR";
+        close OLDERR;
       }
       return 0;
     }
 
-    if (($params{'pdf'} == 0) || ($params{'pdf'} == 1)) {
+    if (($self->{params}->{'pdf'} == 0) || ($self->{params}->{'pdf'} == 1)) {
       close STDERR;
-      open STDERR, ">&", $olderr;
+      open STDERR, ">&OLDERR";
+      close OLDERR;
     }
 
-    unlink "$pdfend[0]";
+    unlink $self->{pdfend0};
 
-    @pdfend = ();
+    undef $self->{pdfend0};
+    undef $self->{pdfend1};
 
   }
 
@@ -798,22 +818,16 @@ sub Unit {
       $self->{unit} = 1;
     }
   } else {
-    $self->{unit} = 1;
+    return $self->{unit};
   }
 
   $self->{xres} = $self->Caps(LOGPIXELSX);
   $self->{yres} = $self->Caps(LOGPIXELSY);
-  unless (defined($self->{xres})) { return undef; }
-  unless (defined($self->{xres})) { return undef; }
 
-  my $phwid = $self->Caps(PHYSICALWIDTH);
-  my $phhei = $self->Caps(PHYSICALHEIGHT);
-  unless (defined($phwid)) { return undef; }
-  unless (defined($phhei)) { return undef; }
-  $self->{xsize} = $self->_xp2un($phwid);
-  $self->{ysize} = $self->_yp2un($phhei);
+  $self->{xsize} = $self->_xp2un($self->Caps(PHYSICALWIDTH));
+  $self->{ysize} = $self->_yp2un($self->Caps(PHYSICALHEIGHT));
 
-  unless (($self->{xres} > 0) or ($self->{yres} > 0) or ($self->{xsize} > 0) or ($self->{ysize} > 0)) {
+  unless (($self->{xres} > 0) && ($self->{yres} > 0) && ($self->{xsize} > 0) && ($self->{ysize} > 0)) {
     _croak "ERROR: Cannot get printer resolution! ${\_GetLastError()}";
     return undef;
   }
@@ -828,18 +842,20 @@ sub Debug {
 
   my $self = shift;
 
-  if ($#_ != 0) { _croak "ERROR: Wrong number of parameters!\n"; }
+  if ($#_ > 0) { _croak "ERROR: Wrong number of parameters!\n"; }
 
-  $numcroaked = 0;
-  _num($_[0]);
-  return undef if $numcroaked;
-  if (($debuglevel > -1) and ($debuglevel < 3)) {
-    $debuglevel = shift;
-  } else {
-    _croak "ERROR: Invalid argument!\n";
+  if ($#_ == 0) {
+    $numcroaked = 0;
+    _num($_[0]);
+    return undef if $numcroaked;
+    if (($_[0] > -1) and ($_[0] < 3)) {
+      $debuglevel = shift;
+    } else {
+      _croak "ERROR: Invalid argument!\n";
+    }
   }
 
-  return 1;
+  return $debuglevel;
 
 }
 
@@ -854,9 +870,14 @@ sub Next {
   my $desc = shift;
   my $file = shift;
 
-  unless (defined($self->End())) { return undef; }
-  unless (defined($self->Start($desc, $file))) { return undef; }
-  unless (defined($self->Space(1, 0, 0, 1, 0, 0))) { return undef; }
+  unless (defined($self->End())) {
+    _croak "ERROR: Cannot end previous job!\n";
+    return undef;
+  }
+  unless (defined($self->Start($desc, $file))) {
+    _croak "ERROR: Cannot start next job!\n";
+    return undef;
+  }
 
   return 1;
 
@@ -873,27 +894,28 @@ sub Start {
   my $desc = shift;
   my $file = shift;
 
-  if ((!defined($file)) and (!defined($params{'file'}))) {
+  if ((!defined($file)) and (!defined($self->{params}->{'file'}))) {
     $file = "";
   } else {
-    if ((!defined($file)) and (defined($params{'file'}))) {
-      $file = $params{'file'};
+    if ((!defined($file)) and (defined($self->{params}->{'file'}))) {
+      $file = $self->{params}->{'file'};
     }
     while (-f $file) { 
       $file =~ s/(?:\((\d+)\))*(\..*)*$/my $i; $1 ? ($i = $1 + 1) : ($i = 1); $2 ? "\($i\)$2" : "\($i\)"/e;
-      $params{'file'} = $file;
+      $self->{params}->{'file'} = $file;
     }
   }
 
-  if (($file ne "") and (defined($params{'pdf'}))) {
-    $pdfend[1] = $file;
+  if (($file ne "") and (defined($self->{params}->{'pdf'}))) {
+    $self->{pdfend1} = $file;
     my $tmp = Win32::Printer::_GetTempPath();
     $file =~ s/.*\\//;
-    $file = $tmp.$file;
-    $pdfend[0] = $file;
+    my $seed = join('', (0..9, 'A'..'Z', 'a'..'z')[rand 62, rand 62, rand 62, rand 62, rand 62, rand 62, rand 62, rand 62]);
+    $file = $tmp.$file.".".$seed;
+    $self->{pdfend0} = $file;
   }
 
-  unless (_StartDoc($self->{dc}, $desc || $params{'description'} || 'Printer', $file) > 0) {
+  unless (_StartDoc($self->{dc}, $desc || $self->{params}->{'description'} || 'Printer', $file) > 0) {
     _croak "ERROR: Cannot start the document! ${\_GetLastError()}";
     return undef;
   }
@@ -903,7 +925,10 @@ sub Start {
     return undef;
   }
 
-  unless (defined($self->Space(1, 0, 0, 1, 0, 0))) { return undef; }
+  unless (defined($self->Space(1, 0, 0, 1, 0, 0))) {
+    _croak "ERROR: Cannot reset the document space!\n";
+    return undef;
+  }
 
   return 1;
 
@@ -927,12 +952,12 @@ sub End {
     return undef;
   }
 
-  unless (_pdf()) {
+  unless ($self->_pdf()) {
     _croak "ERROR: Cannot create PDF document! ${\_GetLastError()}";
     return undef;
   }
 
-  if (defined($params{'file'})) { return $params{'file'}; }
+  if (defined($self->{params}->{'file'})) { return $self->{params}->{'file'}; }
   return 1;
 
 }
@@ -950,12 +975,12 @@ sub Abort {
     return undef;
   }
 
-  unless (_pdf()) {
+  unless ($self->_pdf()) {
     _croak "ERROR: Cannot create PDF document! ${\_GetLastError()}";
     return undef;
   }
 
-  if (defined($params{'file'})) { return $params{'file'}; }
+  if (defined($self->{params}->{'file'})) { return $self->{params}->{'file'}; }
   return 1;
 
 }
@@ -978,7 +1003,10 @@ sub Page {
     return undef;
   }
 
-  unless (defined($self->Space(1, 0, 0, 1, 0, 0))) { return undef; }
+  unless (defined($self->Space(1, 0, 0, 1, 0, 0))) {
+    _croak "ERROR: Cannot reset the page space!\n";
+    return undef;
+  }
 
   return 1;
 
@@ -1004,8 +1032,10 @@ sub Space {
 
   my $xoff = $self->Caps(PHYSICALOFFSETX);
   my $yoff = $self->Caps(PHYSICALOFFSETY);
-  unless (defined($xoff)) { return undef; }
-  unless (defined($yoff)) { return undef; }
+  unless (defined($xoff) && defined($yoff)) {
+    _croak "ERROR: Cannot get the physical offset!\n";
+    return undef;
+  }
 
   if (_SetWorldTransform($self->{dc}, $m11, $m12, $m21, $m22, $self->_xun2p($dx) - $xoff, $self->_yun2p($dy) - $yoff) == 0) {
     _croak "ERROR: Cannot transform space! ${\_GetLastError()}";
@@ -1584,10 +1614,10 @@ sub Arc {
 
   my $pi = 3.1415926535;
 
-  my $xr1 = $xc + int(100 * cos($a1*$pi/180));
-  my $yr1 = $yc - int(100 * sin($a1*$pi/180));
-  my $xr2 = $xc + int(100 * cos($a2*$pi/180));
-  my $yr2 = $yc - int(100 * sin($a2*$pi/180));
+  my $xr1 = $xc + int(100 * cos($a1 * $pi / 180));
+  my $yr1 = $yc - int(100 * sin($a1 * $pi / 180));
+  my $xr2 = $xc + int(100 * cos($a2 * $pi / 180));
+  my $yr2 = $yc - int(100 * sin($a2 * $pi / 180));
 
   unless (_Arc($self->{dc}, $self->_xun2p($x), $self->_yun2p($y),
 		     $self->_xun2p($x + $w), $self->_yun2p($y + $h),
@@ -2121,7 +2151,7 @@ sub Close {
     if ($self->{dc}) {
       _EndPage($self->{dc});
       if (_EndDoc($self->{dc}) > 0) {
-        unless(_pdf()) {
+        unless($self->_pdf()) {
           _croak "ERROR: Cannot create PDF document! ${\_GetLastError()}";
           return undef;
         }
@@ -2130,7 +2160,7 @@ sub Close {
     }
 
     undef $self->{dc};
-    if (defined($params{'file'})) { return $params{'file'}; }
+    if (defined($self->{params}->{'file'})) { return $self->{params}->{'file'}; }
 
   }
 
@@ -2301,6 +2331,8 @@ Set to:
 
 If debug level set to 2- methods return undef value on error.
 
+MAY INTERFERE WITH DIFFERENT PRINTER OBJECTS!
+
 See also L</Debug>.
 
 =head3 description
@@ -2397,13 +2429,13 @@ See also L</width>.
 
 =head3 maxp
 
-Major page number in printer dialog (maximal possible value).
+Major page number in printer dialog (maximal allowed value).
 
 See also L</minp>.
 
 =head3 minp
 
-Minor page number in printer dialog (minimal possible value).
+Minor page number in printer dialog (minimal allowed value).
 
 See also L</maxp>.
 
@@ -2982,15 +3014,17 @@ See also L</Write> and L</Font>.
 
 =head2 Debug
 
-  $dc->Debug($debuglevel);
+  $dc->Debug([$debuglevel]);
 
-The B<Debug> method changes debug level from now on. Possible values:
+The B<Debug> method changes debug level from now on or gets current level. Possible values:
 
   0 - default;
   1 - die on warnings;
   2 - warn on errors (not recomended);
 
 If debug level set to 2- methods return undef value on error.
+
+MAY INTERFERE WITH DIFFERENT PRINTER OBJECTS!
 
 See also L</debug*>.
 
@@ -3362,7 +3396,7 @@ where the transformation matrix is represented by the following:
 
 =head2 Start
 
-  $dc->Start([$description])
+  $dc->Start([$description]);
 
 The B<Start> method starts a print job.
 Default description - "Printer".

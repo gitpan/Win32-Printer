@@ -18,7 +18,7 @@ my $dc = new Win32::Printer( file => "t/tmp/test.prn" );
 
 ok ( defined($dc), 'new()' );
 
-ok ( $dc->Debug(0) == 1, 'Debug()' );
+ok ( defined($dc->Debug(0)), 'Debug()' );
 
 ok ( defined($dc->Caps(DRIVERVERSION)), 'Caps()' );
 ok ( $dc->Unit('in') == 1, 'Unit()' );

@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------------*\
 | Win32::Printer                                                               |
-| V 0.7.0 (2004-01-07)                                                         |
+| V 0.7.1 (2004-04-11)                                                         |
 | Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            |
 | http://www.wasx.net                                                          |
 \*----------------------------------------------------------------------------*/
@@ -199,8 +199,8 @@ _SaveAs(index, suggest, indir)
       ofn.lpstrFile = file;
       ofn.nMaxFile = MAX_PATH;
       ofn.lpstrFileTitle = NULL;
-      if (indir == "") {
-         ofn.lpstrInitialDir = NULL;
+      if (!strlen(indir)) {
+         ofn.lpstrInitialDir = PerlEnv_get_childdir();
       } else {
          ofn.lpstrInitialDir = indir;
       }
