@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------------*\
 | Win32::Printer                                                               |
-| V 0.6.3 (2003-08-28)                                                         |
+| V 0.6.4 (2003-08-28)                                                         |
 | Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            |
 | http://www.wasx.net                                                          |
 \*----------------------------------------------------------------------------*/
@@ -880,13 +880,15 @@ _EnumPrinterDrivers(Server, Env)
       dri3 = (DRIVER_INFO_3 *) buffer;
       if ((rc) && (returned)) {
          for (i = 0; i < returned; i++) {
-            while (1) {
-               if ((dri3[i].pDependentFiles[x] == '\0') && (dri3[i].pDependentFiles[x + 1] != '\0')) {
-                  dri3[i].pDependentFiles[x] = 59;
-               } else if ((dri3[i].pDependentFiles[x] == '\0') && (dri3[i].pDependentFiles[x + 1] == '\0')) {
-                  break;
+            if (dri3[i].pDependentFiles != NULL) {
+               while (1) {
+                  if ((dri3[i].pDependentFiles[x] == '\0') && (dri3[i].pDependentFiles[x + 1] != '\0')) {
+                     dri3[i].pDependentFiles[x] = 59;
+                  } else if ((dri3[i].pDependentFiles[x] == '\0') && (dri3[i].pDependentFiles[x + 1] == '\0')) {
+                     break;
+                  }
+                  x++;
                }
-               x++;
             }
             bytes = sprintf(tmpbuf, "%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
                dri3[i].cVersion,

@@ -4,7 +4,7 @@
 # Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            #
 #------------------------------------------------------------------------------#
 
-use Test::Simple tests => 53;
+use Test::Simple tests => 54;
 
 use strict;
 use warnings;
@@ -23,6 +23,8 @@ ok ( defined($dc->{minp}), '$dc->{minp}' );
 ok ( defined($dc->{maxp}), '$dc->{maxp}' );
 ok ( defined($dc->{copies}), '$dc->{copies}' );
 ok ( defined($dc->{collate}), '$dc->{collate}' );
+
+ok ( defined($dc->Caps(DRIVERVERSION)), 'Caps()' );
 
 ok ( $dc->Unit('in') == 1, 'Unit()' );
 
@@ -89,13 +91,13 @@ ok ( $dc->Close() == 1, 'Close()' );
 
 #------------------------------------------------------------------------------#
 
-ok ( defined(Printers(ENUM_LOCAL)), 'Printers(ENUM_LOCAL)');
+ok ( defined(Printers()), 'Printers()');
 ok ( defined(Drivers()), 'Drivers()');
 ok ( defined(Ports()), 'Ports()');
 ok ( defined(Monitors()), 'Monitors()');
 ok ( defined(Processors()), 'Processors()');
 ok ( defined(Types()), 'Types()');
-my @printer = Printers(ENUM_LOCAL);
+my @printer = Printers();
 ok ( defined(Jobs($printer[0]{PrinterName}, 0, 1)), 'Jobs()');
 
 #------------------------------------------------------------------------------#

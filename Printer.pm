@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------#
 # Win32::Printer                                                               #
-# V 0.6.3 (2003-08-28)                                                         #
+# V 0.6.4 (2003-08-28)                                                         #
 # Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            #
 # http://www.wasx.net                                                          #
 #------------------------------------------------------------------------------#
@@ -17,7 +17,7 @@ require Exporter;
 
 use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD );
 
-$VERSION = '0.6.3.1';
+$VERSION = '0.6.4';
 
 @ISA = qw( Exporter );
 
@@ -64,6 +64,13 @@ $VERSION = '0.6.3.1';
 	BIN_CASSETTE BIN_FORMSOURCE
 
 	MONOCHROME COLOR
+
+	DRIVERVERSION HORZSIZE VERTSIZE HORZRES VERTRES BITSPIXEL PLANES
+	NUMBRUSHES NUMPENS NUMMARKERS NUMFONTS NUMCOLORS PDEVICESIZE CURVECAPS
+	LINECAPS POLYGONALCAPS TEXTCAPS CLIPCAPS RASTERCAPS ASPECTX ASPECTY
+	ASPECTXY LOGPIXELSX LOGPIXELSY SIZEPALETTE NUMRESERVED COLORRES
+	PHYSICALWIDTH PHYSICALHEIGHT PHYSICALOFFSETX PHYSICALOFFSETY
+	SCALINGFACTORX SCALINGFACTORY
 
       );
 
@@ -159,7 +166,6 @@ sub LOGPIXELSY			{ 90; }
 sub SIZEPALETTE			{ 104; }
 sub NUMRESERVED			{ 106; }
 sub COLORRES			{ 108; }
-
 sub PHYSICALWIDTH		{ 110; }
 sub PHYSICALHEIGHT		{ 111; }
 sub PHYSICALOFFSETX		{ 112; }
@@ -450,7 +456,7 @@ sub _init {
   my (%params) = @_;
 
   for (keys %params) {
-    if ($_ !~ /printer|dialog|copies|collate|minp|maxp|orientation|papersize|duplex|description|unit|source|color/) {
+    if ($_ !~ /dc|printer|dialog|copies|collate|minp|maxp|orientation|papersize|duplex|description|unit|source|color/) {
       carp qq^WARNING: Unknown attribute "$_"!\n^;
     }
   }
@@ -487,12 +493,14 @@ sub _init {
   $self->{minp}    = $params{'minp'};
   $self->{maxp}    = $params{'maxp'};
 
-  unless (_StartDoc($self->{dc}, $params{description} || 'Printer') > 0) {
-    croak "ERROR: Cannot start document! ${\_GetLastError()}";
-  }
+  if (!defined($params{'dc'}) || !$params{'dc'}) {
+    unless (_StartDoc($self->{dc}, $params{description} || 'Printer') > 0) {
+      croak "ERROR: Cannot start document! ${\_GetLastError()}";
+    }
 
-  unless (_StartPage($self->{dc}) > 0) {
-    croak "ERROR: Cannot start page! ${\_GetLastError()}";
+    unless (_StartPage($self->{dc}) > 0) {
+      croak "ERROR: Cannot start page! ${\_GetLastError()}";
+    }
   }
 
   $self->Space(1, 0, 0, 1, 0, 0);
@@ -599,11 +607,11 @@ sub Unit {
     $self->{unit} = 1;
   }
 
-  $self->{xres} = _GetDeviceCaps($self->{dc}, LOGPIXELSX);
-  $self->{yres} = _GetDeviceCaps($self->{dc}, LOGPIXELSY);
+  $self->{xres} = $self->Caps(LOGPIXELSX);
+  $self->{yres} = $self->Caps(LOGPIXELSY);
 
-  $self->{xsize} = $self->_xp2un(_GetDeviceCaps($self->{dc}, PHYSICALWIDTH));
-  $self->{ysize} = $self->_yp2un(_GetDeviceCaps($self->{dc}, PHYSICALHEIGHT));
+  $self->{xsize} = $self->_xp2un($self->Caps(PHYSICALWIDTH));
+  $self->{ysize} = $self->_yp2un($self->Caps(PHYSICALHEIGHT));
 
   unless (($self->{xres} > 0) or ($self->{yres} > 0) or ($self->{xsize} > 0) or ($self->{ysize} > 0)) {
     croak "ERROR: Cannot get printer resolution! ${\_GetLastError()}";
@@ -740,8 +748,8 @@ sub Space {
 
   my ($m11, $m12, $m21, $m22, $dx, $dy) = @_;
 
-  my $xoff = _GetDeviceCaps($self->{dc}, PHYSICALOFFSETX);
-  my $yoff = _GetDeviceCaps($self->{dc}, PHYSICALOFFSETY);
+  my $xoff = $self->Caps(PHYSICALOFFSETX);
+  my $yoff = $self->Caps(PHYSICALOFFSETY);
 
   if (_SetWorldTransform($self->{dc}, $m11, $m12, $m21, $m22, $self->_xun2p($dx) - $xoff, $self->_yun2p($dy) - $yoff) == 0) {
     croak "ERROR: Cannot transform space! ${\_GetLastError()}";
@@ -1602,6 +1610,22 @@ sub Image {
 
 #------------------------------------------------------------------------------#
 
+sub Caps {
+
+  my $self = shift;
+
+  if ($#_ < 0) { croak "ERROR: Not enough actual parameters!\n"; }
+  if ($#_ > 0) { carp "WARNING: Too many actual parameters!\n"; }
+
+  my $index = shift;
+  _num($index);
+
+  return _GetDeviceCaps($self->{dc}, $index);
+
+}
+
+#------------------------------------------------------------------------------#
+
 sub Close {
 
   my $self = shift;
@@ -1720,7 +1744,13 @@ The B<new> class method creates printer object, starts new document (a print
 job), returns printer object and changes B<$dc-E<gt>{flags}> variable.
 B<$dc-E<gt>{flags}> contains modified printer dialog flags. B<new> also sets
 B<$dc-E<gt>{copies}>, B<$dc-E<gt>{collate}>, B<$dc-E<gt>{maxp}> and
-B<$dc-E<gt>{minp}> variables.
+B<$dc-E<gt>{minp}>, B<$dc-E<gt>{xres}>, B<$dc-E<gt>{yres}>, B<$dc-E<gt>{xsize}>,
+B<$dc-E<gt>{ysize}> variables.
+
+  $dc->{xres};	# X resolution
+  $dc->{yres};	# Y resolution
+  $dc->{xsize};	# X size in chosen units
+  $dc->{ysize};	# Y size in chosen units
 
 B<NOTE!> Print job is automatically aborted if print job is not ended by
 B<L</End>> or B<L</Close>> methods or if an error occurs!
@@ -1737,6 +1767,11 @@ is used. Value of attribute is also used for B<dialog> initialisation.
 
 Set printer's "friendly" name e.g. "HP LaserJet 8500" or network printer's UNC
 e.g. "\\\\server\\printer".
+
+=item * dc
+
+If B<dc> is not zero or null- returns only device context without starting the
+document and new page.
 
 =item * dialog
 
@@ -2071,6 +2106,229 @@ Horizontal and vertical cross-hatch
 
 See also L</Pen>.
 
+=head2 Caps
+
+  $dc->Caps($index);
+
+The B<Caps> method retrieves device-specific information about a specified
+device.
+
+B<$index> specifies the item to return. This parameter can be one of the
+following values:
+
+  DRIVERVERSION
+
+The device driver version.
+
+  HORZSIZE
+
+Width, in millimeters, of the physical screen.
+
+  VERTSIZE
+
+Height, in millimeters, of the physical screen.
+
+  HORZRES
+
+Width, in pixels, of the screen.
+
+  VERTRES
+
+Height, in raster lines, of the screen.
+
+  LOGPIXELSX
+
+Number of pixels per logical inch along the screen width.
+
+  LOGPIXELSY
+
+Number of pixels per logical inch along the screen height.
+
+  BITSPIXEL
+
+Number of adjacent color bits for each pixel.
+
+  PLANES
+
+Number of color planes.
+
+  NUMBRUSHES
+
+Number of device-specific brushes.
+
+  NUMPENS
+
+Number of device-specific pens.
+
+  NUMFONTS
+
+Number of device-specific fonts.
+
+  NUMCOLORS
+
+Number of entries in the device's color table, if the device has a color depth
+of no more than 8 bits per pixel. For devices with greater color depths, -1 is
+returned.
+
+  ASPECTX
+
+Relative width of a device pixel used for line drawing.
+
+  ASPECTY
+
+Relative height of a device pixel used for line drawing.
+
+  ASPECTXY
+
+Diagonal width of the device pixel used for line drawing.
+
+  CLIPCAPS
+
+Flag that indicates the clipping capabilities of the device. If the device can
+clip to a rectangle, it is 1. Otherwise, it is 0.
+
+  SIZEPALETTE
+
+Number of entries in the system palette. This index is valid only if the device
+driver sets the RC_PALETTE bit in the RASTERCAPS index and is available only if
+the driver is compatible with 16-bit Windows.
+
+  NUMRESERVED
+
+Number of reserved entries in the system palette. This index is valid only if
+the device driver sets the RC_PALETTE bit in the RASTERCAPS index and is
+available only if the driver is compatible with 16-bit Windows.
+
+  COLORRES
+
+Actual color resolution of the device, in bits per pixel. This index is valid
+only if the device driver sets the RC_PALETTE bit in the RASTERCAPS index and
+is available only if the driver is compatible with 16-bit Windows.
+
+  PHYSICALWIDTH
+
+For printing devices: the width of the physical page, in device units. For
+example, a printer set to print at 600 dpi on 8.5"x11" paper has a physical
+width value of 5100 device units. Note that the physical page is almost always
+greater than the printable area of the page, and never smaller.
+
+  PHYSICALHEIGHT
+
+For printing devices: the height of the physical page, in device units. For
+example, a printer set to print at 600 dpi on 8.5"x11" paper has a physical
+height value of 6600 device units. Note that the physical page is almost always
+greater than the printable area of the page, and never smaller.
+
+  PHYSICALOFFSETX
+
+For printing devices: the distance from the left edge of the physical page to
+the left edge of the printable area, in device units. For example, a printer
+set to print at 600 dpi on 8.5"x11" paper, that cannot print on the leftmost
+0.25" of paper, has a horizontal physical offset of 150 device units.
+
+  PHYSICALOFFSETY
+
+For printing devices: the distance from the top edge of the physical page to the
+top edge of the printable area, in device units. For example, a printer set to
+print at 600 dpi on 8.5"x11" paper, that cannot print on the topmost 0.5" of
+paper, has a vertical physical offset of 300 device units.
+
+  SCALINGFACTORX
+
+Scaling factor for the x-axis of the printer.
+
+  SCALINGFACTORY
+
+Scaling factor for the y-axis of the printer. 
+
+  RASTERCAPS
+
+Value that indicates the raster capabilities of the device, as shown in the
+following table:
+
+    0x0001	Capable of transferring bitmaps.
+    0x0002	Requires banding support.
+    0x0004	Capable of scaling.
+    0x0008	Capable of supporting bitmaps larger than 64K.
+    0x0010	Capable of supporting features of 16-bit Windows 2.0.
+    0x0080	Capable of supporting the SetDIBits and GetDIBits functions
+		(Win API).
+    0x0100	Specifies a palette-based device.
+    0x0200	Capable of supporting the SetDIBitsToDevice function (Win API).
+    0x0800	Capable of performing the StretchBlt function (Win API).
+    0x1000	Capable of performing flood fills.
+    0x2000	Capable of performing the StretchDIBits function (Win API).
+
+  CURVECAPS
+
+Value that indicates the curve capabilities of the device, as shown in the
+following table:
+
+    0	Device does not support curves.
+    1	Device can draw circles.
+    2	Device can draw pie wedges.
+    4	Device can draw chord arcs.
+    8	Device can draw ellipses.
+    16	Device can draw wide borders.
+    32	Device can draw styled borders.
+    64	Device can draw borders that are wide and styled.
+    128	Device can draw interiors.
+    256	Device can draw rounded rectangles.
+
+  LINECAPS
+
+Value that indicates the line capabilities of the device, as shown in the
+following table:
+
+    0	Device does not support lines.
+    2	Device can draw a polyline.
+    4	Device can draw a marker.
+    8	Device can draw multiple markers.
+    16	Device can draw wide lines.
+    32	Device can draw styled lines.
+    64	Device can draw lines that are wide and styled.
+    128	Device can draw interiors.
+
+  POLYGONALCAPS
+
+Value that indicates the polygon capabilities of the device, as shown in the
+following table:
+
+    0	Device does not support polygons.
+    1	Device can draw alternate-fill polygons.
+    2	Device can draw rectangles.
+    4	Device can draw winding-fill polygons.
+    8	Device can draw a single scanline.
+    16	Device can draw wide borders.
+    32	Device can draw styled borders.
+    64	Device can draw borders that are wide and styled.
+    128	Device can draw interiors.
+
+  TEXTCAPS
+
+Value that indicates the text capabilities of the device, as shown in the
+following table:
+
+    0x00000001	Device is capable of character output precision.
+    0x00000002	Device is capable of stroke output precision.
+    0x00000004	Device is capable of stroke clip precision.
+    0x00000008	Device is capable of 90-degree character rotation.
+    0x00000010	Device is capable of any character rotation.
+    0x00000020	Device can scale independently in the x- and y-directions.
+    0x00000040	Device is capable of doubled character for scaling.
+    0x00000080	Device uses integer multiples only for character scaling.
+    0x00000100	Device uses any multiples for exact character scaling.
+    0x00000200	Device can draw double-weight characters.
+    0x00000400	Device can italicize.
+    0x00000800	Device can underline.
+    0x00001000	Device can draw strikeouts.
+    0x00002000	Device can draw raster fonts.
+    0x00004000	Device can draw vector fonts.
+    0x00010000	Device cannot scroll using a bit-block transfer. Note that this
+		meaning may be the opposite of what you expect.
+
+See also L</new>.
+
 =head2 Chord
 
   $dc->Chord($x, $y, $width, $height, $start_angle, $end_angle2);
@@ -2262,7 +2520,7 @@ See also L</Start>, L</Next> and L</End>.
 
   $dc->PAbort();
 
-The B<PAbort> function closes and discards any paths.
+The B<PAbort> method closes and discards any paths.
 
 
 =head2 PBegin

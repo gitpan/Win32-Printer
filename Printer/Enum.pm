@@ -295,7 +295,7 @@ Win32::Printer::Enum - Perl extension for Win32 printing environment enumeration
  use Win32::Printer::Enum;
  use Win32::Printer::Enum qw( Jobs );
 
- my @printer = Printers(ENUM_LOCAL);
+ my @printer = Printers();
  @jobs = Jobs($printer[0]{PrinterName}, 0, 1);
  print $jobs[0]{Document};
 
