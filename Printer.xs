@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------------*\
 | Win32::Printer                                                               |
-| V 0.8.2 (2004-08-06)                                                         |
+| V 0.8.3 (2004-08-11)                                                         |
 | Copyright (C) 2003-2004 Edgars Binans <admin@wasx.net>                       |
 | http://www.wasx.net                                                          |
 \*----------------------------------------------------------------------------*/
@@ -9,8 +9,8 @@
 #include "perl.h"
 #include "XSUB.h"
 
-#ifdef EBAR
-#include "ebarwinc.h"
+#ifdef EBBL
+#include "ebblwc.h"
 #endif
 
 #ifdef FREE
@@ -53,7 +53,7 @@ _Get3PLibs()
 #ifdef GHOST
       RETVAL |= 0x00000002;
 #endif
-#ifdef EBAR
+#ifdef EBBL
       RETVAL |= 0x00000004;
 #endif
     OUTPUT:
@@ -892,7 +892,7 @@ _GetWinMetaFile(hdc, lpszMetaFile)
       RETVAL
 
 int
-_EBar(hdc, string, x, y, flags, baw, bah)
+_EBbl(hdc, string, x, y, flags, baw, bah)
       HDC hdc;
       LPTSTR string;
       int x;
@@ -901,14 +901,14 @@ _EBar(hdc, string, x, y, flags, baw, bah)
       int baw;
       int bah;
     PREINIT:
-#ifdef EBAR
+#ifdef EBBL
       ebc_t ebc;
       HPEN pen;
       HPEN prepen;
 #endif
     CODE:
       RETVAL = NULL;
-#ifdef EBAR
+#ifdef EBBL
       ebc.hdc = hdc;
       ebc.flags = flags;
       ebc.baw = baw;
@@ -916,7 +916,7 @@ _EBar(hdc, string, x, y, flags, baw, bah)
       __try {
          pen = CreatePen(PS_NULL, 1, 0xFFFFFFFF);
          prepen = SelectObject(hdc, pen);
-         RETVAL = EBar(&ebc, string, x, y);
+         RETVAL = EBbl(&ebc, string, x, y);
          SelectObject(hdc, prepen);
 DeleteObject(pen);
          CreatePen(PS_NULL, 1, 0xFFFFFFFF);
@@ -925,7 +925,7 @@ DeleteObject(pen);
          RETVAL = 64;
       }
 #else
-      croak("EBar is not supported in this build!\n");
+      croak("EBbl is not supported in this build!\n");
 #endif
     OUTPUT:
       RETVAL

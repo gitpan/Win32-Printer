@@ -1,8 +1,8 @@
-3PLibs/ebar/_version.txt
-3PLibs/ebar/ebar.lib
-3PLibs/ebar/ebarwinc.h
-3PLibs/ebar/ebwinapi.h
-3PLibs/ebar/license.txt
+3PLibs/ebbl/_version.txt
+3PLibs/ebbl/ebbl.lib
+3PLibs/ebbl/ebblwc.h
+3PLibs/ebbl/ebwapi.h
+3PLibs/ebbl/license.txt
 3PLibs/FreeImage/_version.txt
 3PLibs/FreeImage/FreeImage.h
 3PLibs/FreeImage/FreeImage.lib

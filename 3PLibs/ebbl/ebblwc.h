@@ -1,17 +1,17 @@
 ////////////////////////////////////////////////////////////////////////////////
 //									      //
-//  This is part of ebar 2.0.0 barcode library				      //
-//  ebarwinc.h 2004-08-06						      //
+//  This is part of ebbl 1.0.0 barcode library				      //
+//  ebblwinc.h 2004-08-11						      //
 //  Copyright (c) 2003-2004, Edgars Binans				      //
 //									      //
 //  Web: http://www.wasx.net	Mail: admin@wasx.net			      //
 //									      //
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef EBAR_WIN_HEADERC_FILE
-#define EBAR_WIN_HEADERC_FILE
+#ifndef ebbl_WIN_HEADERC_FILE
+#define ebbl_WIN_HEADERC_FILE
 
-#include "ebwinapi.h"
+#include "ebwapi.h"
 
 #define EB_ESUCCESS	0
 #define EB_ESELECT	1
@@ -57,7 +57,7 @@
 /** \brief	Barcode options ("C"-style)
  *
  * Structure that describes barcode for "C"-style function.
- * @see EBar
+ * @see ebbl
  */
 typedef struct ebc_tag {
   HDC		hdc;	///< Device context
@@ -77,7 +77,7 @@ extern "C" {
    * @return error code
    * @see ebc_tag
    */
-  WIN_API int EBar(pebc_t ebc, char* enstr, int x, int y);
+  WIN_API int EBbl(pebc_t ebc, char* enstr, int x, int y);
 #ifdef __cplusplus
 }
 #endif

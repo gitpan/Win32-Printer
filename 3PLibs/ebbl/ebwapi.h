@@ -1,14 +1,14 @@
 ////////////////////////////////////////////////////////////////////////////////
 //									      //
-//  ebwinapi.cpp 2004-08-06						      //
+//  ebwinapi.cpp 2004-08-11						      //
 //  Copyright (c) 2003-2004, Edgars Binans				      //
 //									      //
 //  Web: http://www.wasx.net	Mail: admin@wasx.net			      //
 //									      //
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef EBAR_WIN_API
-#define EBAR_WIN_API
+#ifndef ebbl_WIN_API
+#define ebbl_WIN_API
 
 #define WIN32_LEAN_AND_MEAN
 #define VC_EXTRALEAN

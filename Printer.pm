@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------#
 # Win32::Printer                                                               #
-# V 0.8.2 (2004-08-06)                                                         #
+# V 0.8.3 (2004-08-11)                                                         #
 # Copyright (C) 2003-2004 Edgars Binans <admin@wasx.net>                       #
 # http://www.wasx.net                                                          #
 #------------------------------------------------------------------------------#
@@ -17,7 +17,7 @@ require Exporter;
 
 use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD $_debuglevel $_numcroaked $_IsNT);
 
-$VERSION = '0.8.2';
+$VERSION = '0.8.3';
 
 @ISA = qw( Exporter );
 
@@ -119,7 +119,7 @@ sub AUTOLOAD {
 
 #------------------------------------------------------------------------------#
 
-# "ebar" modes
+# "ebbl" modes
 sub EB_25MATRIX			{ 0x00000001; }
 sub EB_25INTER			{ 0x00000002; }
 sub EB_25IND			{ 0x00000004; }
@@ -1904,7 +1904,7 @@ sub PClip {
 
 #------------------------------------------------------------------------------#
 
-sub EBar {
+sub EBbl {
 
   my $self = shift;
 
@@ -1927,7 +1927,7 @@ sub EBar {
   unless(_num($bah)) { $bah = 20; }
   return undef if $_numcroaked;
 
-  my $error = _EBar($self->{dc}, $string, $self->_xun2p($x), $self->_yun2p($y), $flags, $self->_pts2p($baw), $self->_pts2p($bah));
+  my $error = _EBbl($self->{dc}, $string, $self->_xun2p($x), $self->_yun2p($y), $flags, $self->_pts2p($baw), $self->_pts2p($bah));
   unless ($error == 0) {
     my @errmessage;
     $errmessage[1]  = "Select barcode standard!\n";
@@ -1936,7 +1936,7 @@ sub EBar {
     $errmessage[8]  = "GDI error!\n";
     $errmessage[16] = "Memory allocation error!\n";
     $errmessage[32] = "Unknown error!\n";
-    $errmessage[64] = "Could not load ebar.dll function!\n";
+    $errmessage[64] = "Could not load ebbl.dll function!\n";
     _croak "ERROR: ".$errmessage[$error];
     return undef;
   }
@@ -2327,8 +2327,8 @@ B<4.> For PDF support, install I<Ghostscript> and set path to it's B<\bin>
 directory. You may get this PostScript interpreter form
 I<http://sourceforge.net>.
 
-B<5.> For Barcode support, install B<I<ebar>>. For information about obtaining
-B<I<ebar>> - visit I<http://www.wasx.net> or send me an e-mail to
+B<5.> For Barcode support, install B<I<ebbl>>. For information about obtaining
+B<I<ebbl>> - visit I<http://www.wasx.net> or send me an e-mail to
 I<admin@wasx.net>.
 
 B<6.> Enjoy it ;)
@@ -2774,7 +2774,7 @@ Horizontal and vertical cross-hatch
 
 45-degree crosshatch.
 
-See also L</Pen> and L</EBar>.
+See also L</Pen> and L</EBbl>.
 
 =head2 Caps
 
@@ -3026,7 +3026,7 @@ is set.
 
 If optional image handle or path is provided-  closes only that image!
 
-See also L</new>, L</Image>, L</MetaEnd>, L</EBar> and L</file>.
+See also L</new>, L</Image>, L</MetaEnd>, L</EBbl> and L</file>.
 
 =head2 Color
 
@@ -3034,7 +3034,7 @@ See also L</new>, L</Image>, L</MetaEnd>, L</EBar> and L</file>.
 
 The B<Color> method sets the text to the specified color.
 
-See also L</Write>, L</Font> and L</EBar>.
+See also L</Write>, L</Font> and L</EBbl>.
 
 =head2 Debug
 
@@ -3052,11 +3052,11 @@ MAY INTERFERE WITH DIFFERENT PRINTER OBJECTS!
 
 See also L</debug*>.
 
-=head2 EBar
+=head2 EBbl
 
-  $dc->EBar($string, $x, $y, $flags, $baw, $bah);
+  $dc->EBbl($string, $x, $y, $flags, $baw, $bah);
 
-The B<EBar> method draws barcode. Uses B<L</Brush>> to fill the bars,
+The B<EBbl> method draws barcode. Uses B<L</Brush>> to fill the bars,
 current B<L</Font>> for the text and B<L</Color>> for the text color.
 B<$string> string to encode, B<$x> drawing x origin, B<$y> drawing y origin,
 B<$flags> barcode mode flags, B<$baw> narrowest bar width in pts, B<$bah> bar
@@ -3210,7 +3210,7 @@ Defined character set constants:
   EASTEUROPE			= 238
   OEM				= 255
 
-See also L</Write>, L</Color> and L</EBar>.
+See also L</Write>, L</Color> and L</EBbl>.
 
 =head2 Image
 
@@ -3252,7 +3252,7 @@ region (See B<L</PClip>>).
 After usage, you should use B<L</Close>> to unload image from memory and destroy
 a handle.
 
-See also L</Close>, L</MetaEnd> and L</EBar>.
+See also L</Close>, L</MetaEnd> and L</EBbl>.
 
 =head2 Line
 
@@ -3761,7 +3761,7 @@ B<Edgars Binans E<lt>admin@wasx.netE<gt>. http://www.wasx.net>
 
 =head1 COPYRIGHT AND LICENSE
 
-This library may use B<I<ebar>> for barcode support. Download B<I<ebar>> from
+This library may use B<I<ebbl>> for barcode support. Download B<I<ebbl>> from
 L<http://www.wasx.net>. See website on license details.
 
 This library may use I<FreeImage>, a free, open source image library

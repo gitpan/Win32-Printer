@@ -1,13 +1,13 @@
 Non-Commercial License
 
-"ebar 2.0" License
+"ebbl 1.0" License
 Author / Licensor: Edgars Binans
 Web: www.wasx.net
 Copyright (C) 2003-2004 Edgars Binans.
 All Rights Reserved.
 
 --------------------------------------------------------------------------------
-  This License covers software Library "ebar 2.0" later referred as "Library".
+  This License covers software Library "ebbl 2.0" later referred as "Library".
   By using or distributing Library You become a legal Licensee of the library.
   Each Licensee is addressed as "You". "Original package" means the set of files
 originally provided by Author/Licensor.

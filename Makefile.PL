@@ -34,14 +34,14 @@ if ($#ARGV != -1) {
     print "\nDO NOT FORGET TO SET A Postscript PRINTER AS DEFAULT FOR THE TESTS TO SUCCEED!\n\n";
   }
 
-  print "Inlude ebar barcode support? [y]: ";
+  print "Inlude ebbl barcode support? [y]: ";
   $in = "y";
   $in = <STDIN>;
   if ($in !~ /n/) {
-    $inc .= '-I.\3PLibs\ebar';
-    $lib .= '-l.\3PLibs\ebar\ebar.lib';
-    $lin .= '-delayload:ebar.dll';
-    $ccf .= '-DEBAR -DWIN_IMPORT';
+    $inc .= '-I.\3PLibs\ebbl';
+    $lib .= '-l.\3PLibs\ebbl\ebbl.lib';
+    $lin .= '-delayload:ebbl.dll';
+    $ccf .= '-DEBBL -DWIN_IMPORT';
   }
 
 } else {
