@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------#
 # Win32::Printer                                                               #
-# V 0.8.3 (2004-08-11)                                                         #
+# V 0.8.4 (2004-11-04)                                                         #
 # Copyright (C) 2003-2004 Edgars Binans <admin@wasx.net>                       #
 # http://www.wasx.net                                                          #
 #------------------------------------------------------------------------------#
@@ -17,13 +17,13 @@ require Exporter;
 
 use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD $_debuglevel $_numcroaked $_IsNT);
 
-$VERSION = '0.8.3';
+$VERSION = '0.8.4';
 
 @ISA = qw( Exporter );
 
 @EXPORT = qw(
 
-	EB_25MATRIX EB_25INTER EB_25IND EB_25IATA EB_27 EB_39STD EB_39EXT
+	EB_EMF EB_25MATRIX EB_25INTER EB_25IND EB_25IATA EB_27 EB_39STD EB_39EXT
 	EB_39DUMB EB_93 EB_128SMART EB_128A EB_128B EB_128C EB_128SHFT EB_128EAN
 	EB_EAN13 EB_UPCA EB_EAN8 EB_UPCE EB_ISBN EB_ISBN2 EB_ISSN EB_AD2 EB_AD5
 	EB_CHK EB_TXT
@@ -146,6 +146,8 @@ sub EB_AD2			{ 0x00400000; }
 sub EB_AD5			{ 0x00800000; }
 sub EB_CHK			{ 0x01000000; }
 sub EB_TXT			{ 0x02000000; }
+
+sub EB_EMF			{ 0x80000000; }
 
 # Print dialog
 sub ALLPAGES			{ 0x00000000; }
@@ -1103,6 +1105,14 @@ sub Font {
         return undef;
       }
 
+    } else {	# Fix by Sandor Patocs;
+
+      unless (_SelectObject($self->{dc}, $self->{obj}->{$fontid})) {
+        _croak "ERROR: Cannot select font! ${\_GetLastError()}";
+        return undef;
+      }
+      return $self->{obj}->{$fontid};
+
     }
 
   }
@@ -1927,7 +1937,9 @@ sub EBbl {
   unless(_num($bah)) { $bah = 20; }
   return undef if $_numcroaked;
 
-  my $error = _EBbl($self->{dc}, $string, $self->_xun2p($x), $self->_yun2p($y), $flags, $self->_pts2p($baw), $self->_pts2p($bah));
+  my $emf = ($flags & EB_EMF) ? 1 : 0;
+
+  my $error = _EBbl($self->{dc}, $emf, $string, $self->_xun2p($x), $self->_yun2p($y), $flags & ~EB_EMF, $self->_pts2p($baw), $self->_pts2p($bah));
   unless ($error == 0) {
     my @errmessage;
     $errmessage[1]  = "Select barcode standard!\n";
@@ -1936,12 +1948,20 @@ sub EBbl {
     $errmessage[8]  = "GDI error!\n";
     $errmessage[16] = "Memory allocation error!\n";
     $errmessage[32] = "Unknown error!\n";
-    $errmessage[64] = "Could not load ebbl.dll function!\n";
+    $errmessage[64] = "Could not load ebbl!\n";
     _croak "ERROR: ".$errmessage[$error];
     return undef;
   }
 
-  return 1;
+  if ($flags & EB_EMF) {
+    if ($emf == 0) {
+      _croak "ERROR: Cannot draw barcode! ${\_GetLastError()}";
+      return undef;
+    }
+    $self->{imager}->{$emf} = 0;
+  }
+
+  return $emf;
 
 }
 

@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------------*\
 | Win32::Printer                                                               |
-| V 0.8.3 (2004-08-11)                                                         |
+| V 0.8.4 (2004-11-04)                                                         |
 | Copyright (C) 2003-2004 Edgars Binans <admin@wasx.net>                       |
 | http://www.wasx.net                                                          |
 \*----------------------------------------------------------------------------*/
@@ -10,6 +10,7 @@
 #include "XSUB.h"
 
 #ifdef EBBL
+#define EBBL_NAL
 #include "ebblwc.h"
 #endif
 
@@ -892,8 +893,9 @@ _GetWinMetaFile(hdc, lpszMetaFile)
       RETVAL
 
 int
-_EBbl(hdc, string, x, y, flags, baw, bah)
+_EBbl(hdc, emf, string, x, y, flags, baw, bah)
       HDC hdc;
+      HENHMETAFILE emf;
       LPTSTR string;
       int x;
       int y;
@@ -905,21 +907,33 @@ _EBbl(hdc, string, x, y, flags, baw, bah)
       ebc_t ebc;
       HPEN pen;
       HPEN prepen;
+      HFONT font;
+      HBRUSH brush;
 #endif
     CODE:
       RETVAL = NULL;
 #ifdef EBBL
-      ebc.hdc = hdc;
       ebc.flags = flags;
       ebc.baw = baw;
       ebc.bah = bah;
       __try {
+         if (emf) {
+           brush = GetCurrentObject(hdc, OBJ_BRUSH);
+           font = GetCurrentObject(hdc, OBJ_FONT);
+           hdc = CreateEnhMetaFile(hdc, NULL, NULL, NULL);
+           SelectObject(hdc, brush);
+           SelectObject(hdc, font);
+           SetBkMode(hdc, TRANSPARENT);
+         }
          pen = CreatePen(PS_NULL, 1, 0xFFFFFFFF);
          prepen = SelectObject(hdc, pen);
+         ebc.hdc = hdc;
          RETVAL = EBbl(&ebc, string, x, y);
          SelectObject(hdc, prepen);
-DeleteObject(pen);
-         CreatePen(PS_NULL, 1, 0xFFFFFFFF);
+         DeleteObject(pen);
+         if (emf) {
+           emf = CloseEnhMetaFile(hdc);
+         }
       }
       __except (exfilt()) {
          RETVAL = 64;
@@ -928,6 +942,7 @@ DeleteObject(pen);
       croak("EBbl is not supported in this build!\n");
 #endif
     OUTPUT:
+      emf
       RETVAL
 
 HENHMETAFILE
@@ -971,7 +986,7 @@ _LoadBitmap(hdc, BmpFile, Type);
             Image = FreeImage_Load(Type, BmpFile, 0);
             if (Image) {
                lpbmi = (BITMAPINFO *) FreeImage_GetInfo(Image);
-               hdc = CreateEnhMetaFile(hdc, (LPCTSTR) NULL, NULL, (LPCTSTR) NULL);
+               hdc = CreateEnhMetaFile(hdc, NULL, NULL, NULL);
                if (lpbmi->bmiHeader.biXPelsPerMeter && lpbmi->bmiHeader.biYPelsPerMeter) {
                   resolutionX = lpbmi->bmiHeader.biXPelsPerMeter / 39.35483881;
                   resolutionY = lpbmi->bmiHeader.biYPelsPerMeter / 39.35483881;

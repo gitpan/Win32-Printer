@@ -17,7 +17,7 @@ if (Win32::Printer::_Get3PLibs() & 0x00000001) {
 
 #------------------------------------------------------------------------------#
 
-my $dc = new Win32::Printer( file => "t/tmp/test.prn" );
+my $dc = new Win32::Printer( file => "t/tmp/test.ps" );
 
 my $bmp00 = $dc->Image('t/t.png');
 ok ( $bmp00 != 0, 'Image() bmp' );

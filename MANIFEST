@@ -1,7 +1,8 @@
 3PLibs/ebbl/_version.txt
-3PLibs/ebbl/ebbl.lib
+3PLibs/ebbl/ebbl11vc.lib
+3PLibs/ebbl/ebblapi.h
+3PLibs/ebbl/ebblver.h
 3PLibs/ebbl/ebblwc.h
-3PLibs/ebbl/ebwapi.h
 3PLibs/ebbl/license.txt
 3PLibs/FreeImage/_version.txt
 3PLibs/FreeImage/FreeImage.h

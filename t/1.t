@@ -14,7 +14,7 @@ use Win32::Printer::Enum qw( Drivers Ports Monitors Processors Types Jobs );
 
 #------------------------------------------------------------------------------#
 
-my $dc = new Win32::Printer( file => "t/tmp/test.prn" );
+my $dc = new Win32::Printer( file => "t/tmp/test.ps" );
 
 ok ( defined($dc), 'new()' );
 

@@ -39,8 +39,8 @@ if ($#ARGV != -1) {
   $in = <STDIN>;
   if ($in !~ /n/) {
     $inc .= '-I.\3PLibs\ebbl';
-    $lib .= '-l.\3PLibs\ebbl\ebbl.lib';
-    $lin .= '-delayload:ebbl.dll';
+    $lib .= '-l.\3PLibs\ebbl\ebbl11vc.lib';
+    $lin .= '-delayload:ebbl11vc.dll';
     $ccf .= '-DEBBL -DWIN_IMPORT';
   }
 

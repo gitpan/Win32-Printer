@@ -17,9 +17,9 @@ if (Win32::Printer::_Get3PLibs() & 0x00000004) {
 
 #------------------------------------------------------------------------------#
 
-my $dc = new Win32::Printer( file => "t/tmp/test.prn" );
+my $dc = new Win32::Printer( file => "t/tmp/test.ps" );
 
-ok ( $dc->EBbl('This is EBbl barcode library test!') == 1, 'EBbl()' );
+ok ( defined($dc->EBbl('This is EBbl barcode library test!', 0, 0, EB_EMF|EB_128SMART)), 'EBbl()' );
 
 $dc->Close();
 
