@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------------*\
 | Win32::Printer                                                               |
-| V 0.6.4 (2003-08-28)                                                         |
+| V 0.6.5 (2003-10-13)                                                         |
 | Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            |
 | http://www.wasx.net                                                          |
 \*----------------------------------------------------------------------------*/
@@ -146,17 +146,21 @@ _DeleteDC(hdc)
       RETVAL
 
 int
-_StartDoc(hdc, DocName)
+_StartDoc(hdc, DocName, FileName)
       HDC hdc;
       LPCTSTR DocName;
+      LPCTSTR FileName;
     PREINIT:
       DOCINFO di;
     CODE:
+      if (FileName == "") {
+         FileName = NULL;
+      }
       di.cbSize = sizeof(DOCINFO);
       di.lpszDocName = DocName;
-      di.lpszOutput = NULL;
+      di.lpszOutput = FileName;
       di.lpszDatatype = NULL;
-      di.fwType = NULL;
+      di.fwType = 0;
       RETVAL = StartDoc(hdc, &di);
     OUTPUT:
       RETVAL
@@ -1116,6 +1120,74 @@ _EnumJobs(EnPrinter, begin, end)
          }
          Safefree(outbuf);
          Safefree(buffer);
+      }
+    OUTPUT:
+      RETVAL
+
+char*
+_GetTempPath()
+    PREINIT:
+      char msg[MAX_PATH];
+    CODE:
+      GetTempPath(MAX_PATH, msg);
+      RETVAL = msg;
+    OUTPUT:
+      RETVAL
+
+int
+_GhostPDF(ps, pdf)
+      LPTSTR ps;
+      LPTSTR pdf;
+    PREINIT:
+      HKEY hkey1;
+      HKEY hkey2;
+      DWORD size = MAX_PATH;
+      char buff[MAX_PATH];
+      LPBYTE dll;
+      HINSTANCE hGS = NULL;
+      PROC gsapi_new_instance = NULL;
+      PROC gsapi_init_with_args = NULL;
+      PROC gsapi_exit = NULL;
+      PROC gsapi_delete_instance = NULL;
+      typedef struct gs_main_instance_s gs_main_instance;
+      gs_main_instance *minst;
+      int gsargc = 11;
+      char pdfpath[MAX_PATH];
+      char* gsargv[] = { "Printer", "-dNOPAUSE", "-dBATCH", "-dSAFER", "-dDOINTERPOLATE", "-sDEVICE=pdfwrite", pdfpath, "-c", ".setpdfwrite", "-f", ps };
+    CODE:
+      RETVAL = NULL;
+      hGS = LoadLibrary("gsdll32.dll");
+      if (hGS == 0) {
+         if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, "SOFTWARE\\AFPL Ghostscript", 0, KEY_READ, &hkey1) == ERROR_SUCCESS) {
+            if (RegEnumKeyEx(hkey1, 0, buff, &size, NULL, NULL, NULL, NULL) == ERROR_SUCCESS) {
+               if (RegOpenKeyEx(hkey1, buff, 0, KEY_READ, &hkey2) == ERROR_SUCCESS) {
+                  RegQueryValueEx(hkey2, "GS_DLL", NULL, NULL, NULL, &size);
+                  New(0, dll, size, BYTE);
+                  RegQueryValueEx(hkey2, "GS_DLL", NULL, NULL, dll, &size);
+                  hGS = LoadLibrary((char*)dll);
+                  Safefree(dll);
+                  RegCloseKey(hkey2);
+               }
+            }
+            RegCloseKey(hkey1);
+         }
+      }
+      if (hGS != NULL) {
+         gsapi_new_instance = GetProcAddress(hGS, "gsapi_new_instance");
+         gsapi_init_with_args = GetProcAddress(hGS, "gsapi_init_with_args");
+         gsapi_exit = GetProcAddress(hGS, "gsapi_exit");
+         gsapi_delete_instance = GetProcAddress(hGS, "gsapi_delete_instance");
+         if (gsapi_new_instance && gsapi_init_with_args && gsapi_exit && gsapi_delete_instance) {
+            if (gsapi_new_instance(&minst, NULL) == 0) {
+               sprintf(pdfpath, "-sOutputFile=%s", pdf);
+               if (gsapi_init_with_args(minst, gsargc, (char**) gsargv) == 0) {
+                  RETVAL = 1;
+                  gsapi_exit(minst);
+               }
+               gsapi_delete_instance(minst);
+            }
+         }
+         FreeLibrary(hGS);
       }
     OUTPUT:
       RETVAL

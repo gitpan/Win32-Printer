@@ -4,6 +4,8 @@ Printer/Enum.pm
 Printer.pm
 Printer.xs
 t/1.t
+t/2.t
+t/3.t
 t/t.emf
 t/t.png
 t/t.wmf

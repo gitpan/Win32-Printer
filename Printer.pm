@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------#
 # Win32::Printer                                                               #
-# V 0.6.4 (2003-08-28)                                                         #
+# V 0.6.5 (2003-10-13)                                                         #
 # Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            #
 # http://www.wasx.net                                                          #
 #------------------------------------------------------------------------------#
@@ -15,9 +15,9 @@ use Carp;
 
 require Exporter;
 
-use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD );
+use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD %params @pdfend);
 
-$VERSION = '0.6.4';
+$VERSION = '0.6.5';
 
 @ISA = qw( Exporter );
 
@@ -453,10 +453,10 @@ sub _init {
 
   my $self = shift;
 
-  my (%params) = @_;
+  (%params) = @_;
 
   for (keys %params) {
-    if ($_ !~ /dc|printer|dialog|copies|collate|minp|maxp|orientation|papersize|duplex|description|unit|source|color/) {
+    if ($_ !~ /dc|printer|dialog|file|pdf|copies|collate|minp|maxp|orientation|papersize|duplex|description|unit|source|color/) {
       carp qq^WARNING: Unknown attribute "$_"!\n^;
     }
   }
@@ -467,6 +467,11 @@ sub _init {
   } else {
     $dialog = 0;
     $params{'dialog'} = 0;
+  }
+
+  if ((defined($params{'pdf'})) and (!defined($params{'file'}))) {
+      delete $params{'pdf'};
+      carp qq^WARNING: pdf attribute used without file attribute - IGNORED!\n^;
   }
 
   if (!defined $params{'printer'})	{ $params{'printer'}	 = ""; }
@@ -494,13 +499,7 @@ sub _init {
   $self->{maxp}    = $params{'maxp'};
 
   if (!defined($params{'dc'}) || !$params{'dc'}) {
-    unless (_StartDoc($self->{dc}, $params{description} || 'Printer') > 0) {
-      croak "ERROR: Cannot start document! ${\_GetLastError()}";
-    }
-
-    unless (_StartPage($self->{dc}) > 0) {
-      croak "ERROR: Cannot start page! ${\_GetLastError()}";
-    }
+    $self->Start($params{description}, $params{'file'});
   }
 
   $self->Space(1, 0, 0, 1, 0, 0);
@@ -580,6 +579,32 @@ sub _pts2p {
 
 #------------------------------------------------------------------------------#
 
+sub _pdf {
+
+  if ((defined($params{'pdf'})) and (defined($pdfend[0]))) {
+
+    open my $oldout, ">&STDOUT";
+    open (STDOUT, ">$pdfend[1].log");
+    select STDOUT; $| = 1;
+
+    unless (Win32::Printer::_GhostPDF(@pdfend)) {
+      croak "ERROR: Cannot create PDF document! ${\_GetLastError()}";
+    }
+
+    close STDOUT;
+    open STDOUT, ">&", $oldout;
+
+    unlink "$pdfend[0]";
+    unlink "$pdfend[1].log" if $params{'pdf'} == 0;
+
+    @pdfend = ();
+
+  }
+
+}
+
+#------------------------------------------------------------------------------#
+
 sub Unit {
 
   my $self = shift;
@@ -627,25 +652,13 @@ sub Next {
 
   my $self = shift;
 
-  if ($#_ > 0) { carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ > 1) { carp "WARNING: Too many actual parameters!\n"; }
 
   my $desc = shift;
+  my $file = shift;
 
-  unless (_EndPage($self->{dc}) > 0) {
-    croak "ERROR: Cannot end the page! ${\_GetLastError()}";
-  }
-
-  unless (_EndDoc($self->{dc})) {
-    croak "ERROR: Cannot end the document! ${\_GetLastError()}";
-  }
-
-  unless (_StartDoc($self->{dc}, $desc || 'Printer') > 0) {
-    croak "ERROR: Cannot start the document! ${\_GetLastError()}";
-  }
-
-  unless (_StartPage($self->{dc}) > 0) {
-    croak "ERROR: Cannot start the page! ${\_GetLastError()}";
-  }
+  $self->End();
+  $self->Start($desc, $file);
 
   $self->Space(1, 0, 0, 1, 0, 0);
 
@@ -659,11 +672,32 @@ sub Start {
 
   my $self = shift;
 
-  if ($#_ > 0) { carp "WARNING: Too many actual parameters!\n"; }
+  if ($#_ > 1) { carp "WARNING: Too many actual parameters!\n"; }
 
   my $desc = shift;
+  my $file = shift;
 
-  unless (_StartDoc($self->{dc}, $desc || 'Printer') > 0) {
+  if ((!defined($file)) and (!defined($params{'file'}))) {
+    $file = "";
+  } else {
+    if ((!defined($file)) and (defined($params{'file'}))) {
+      $file = $params{'file'};
+    }
+    while (-f $file) { 
+      $file =~ s/(?:\((\d+)\))*(\..*)*$/my $i; $1 ? ($i = $1 + 1) : ($i = 1); $2 ? "\($i\)$2" : "\($i\)"/e;
+      $params{'file'} = $file;
+    }
+  }
+
+  if (($file ne "") and (defined($params{'pdf'}))) {
+    $pdfend[1] = $file;
+    my $tmp = Win32::Printer::_GetTempPath();
+    $file =~ s/.*\\//;
+    $file = $tmp.$file;
+    $pdfend[0] = $file;
+  }
+
+  unless (_StartDoc($self->{dc}, $desc || $params{'description'} || 'Printer', $file) > 0) {
     croak "ERROR: Cannot start the document! ${\_GetLastError()}";
   }
 
@@ -693,6 +727,8 @@ sub End {
     croak "ERROR: Cannot end the document! ${\_GetLastError()}";
   }
 
+  _pdf();
+
   return 1;
 
 }
@@ -708,6 +744,8 @@ sub Abort {
   unless (_AbortDoc($self->{dc})) {
     croak "ERROR: Cannot abort the document! ${\_GetLastError()}";
   }
+
+  _pdf();
 
   return 1;
 
@@ -1632,13 +1670,18 @@ sub Close {
 
   if ($#_ > 0) { carp "WARNING: Too many actual parameters!\n"; }
 
-  if (_num($_[0])) {
-
-    if (_DeleteEnhMetaFile($_[0])) {
-      delete $self->{imagef}->{$self->{imager}->{$_[0]}};
-      delete $self->{imager}->{$_[0]};
+  if ($#_ == 0) {
+    if ($_[0] =~ /^-*\d+$/) {
+      if (_DeleteEnhMetaFile($_[0])) {
+        delete $self->{imagef}->{$self->{imager}->{$_[0]}};
+        delete $self->{imager}->{$_[0]};
+      }
+    } else {
+      if (my $file = _DeleteEnhMetaFile($self->{imagef}->{$_[0]})) {
+        delete $self->{imagef}->{$_[0]};
+        delete $self->{imager}->{$file};
+      }
     }
-
   } else {
 
     for (keys %{$self->{obj}}) {
@@ -1653,9 +1696,12 @@ sub Close {
 
     if ($self->{dc}) {
       _EndPage($self->{dc});
-      _EndDoc($self->{dc});
+      if (_EndDoc($self->{dc}) > 0) {
+        _pdf();
+       }
       _DeleteDC($self->{dc});
     }
+    $self->{dc} = 0;
 
   }
 
@@ -1671,9 +1717,8 @@ sub DESTROY {
 
   if ($self->{dc}) {
     _AbortDoc($self->{dc});
+    $self->Close();
   }
-
-  $self->Close();
 
   return 1;
 
@@ -1726,11 +1771,14 @@ B<2.> For VC++ 6.0 or VC++ .NET do the following (others not tested):
   > nmake install
 
 B<3.> For bitmap support, copy I<FreeImage.dll> somewhere in your system path.
-You may get this library form I<http://sourceforge.net> or binary distribution
-of this module (I<http://www.wasx.net>). FreeImage library is needed for the
-tests!
+You may get this library form I<http://sourceforge.net>. B<NOTE:> I<FreeImage>
+library is needed for the second test!
 
-B<4.> Enjoy it ;)
+B<4.> For PDF support, install I<Ghostscript>. You may get this PostScript
+interpreter form I<http://sourceforge.net>. B<NOTE:> I<Ghostscript> is needed
+for the third test!
+
+B<5.> Enjoy it ;)
 
 =head1 DESCRIPTION
 
@@ -1772,6 +1820,22 @@ e.g. "\\\\server\\printer".
 
 If B<dc> is not zero or null- returns only device context without starting the
 document and new page.
+
+=item * file
+
+Set B<file> attribute to save printer drivers output into the file specified by
+value of attribute. B<Note:> Specified file will not be overwritten- it's name
+will be changed to B<file_name(1)... file_name(n)> to avoid overwriting.
+
+=item * pdf
+
+Set this attribute if You want to convert PostScript printer drivers output (see
+B<file> attribute) to PDF format. B<WARNING:> This feature needs installed
+I<Ghostscript>. Use this attribute with B<file>
+attribute.
+
+Set attribute to 0 if You do not need a log file- any other outputs a
+I<Ghostscript> log file.
 
 =item * dialog
 
@@ -2264,68 +2328,66 @@ following table:
 Value that indicates the curve capabilities of the device, as shown in the
 following table:
 
-    0	Device does not support curves.
-    1	Device can draw circles.
-    2	Device can draw pie wedges.
-    4	Device can draw chord arcs.
-    8	Device can draw ellipses.
-    16	Device can draw wide borders.
-    32	Device can draw styled borders.
-    64	Device can draw borders that are wide and styled.
-    128	Device can draw interiors.
-    256	Device can draw rounded rectangles.
+    0		Device does not support curves.
+    1		Device can draw circles.
+    2		Device can draw pie wedges.
+    4		Device can draw chord arcs.
+    8		Device can draw ellipses.
+    16		Device can draw wide borders.
+    32		Device can draw styled borders.
+    64		Device can draw borders that are wide and styled.
+    128		Device can draw interiors.
+    256		Device can draw rounded rectangles.
 
   LINECAPS
 
 Value that indicates the line capabilities of the device, as shown in the
 following table:
 
-    0	Device does not support lines.
-    2	Device can draw a polyline.
-    4	Device can draw a marker.
-    8	Device can draw multiple markers.
-    16	Device can draw wide lines.
-    32	Device can draw styled lines.
-    64	Device can draw lines that are wide and styled.
-    128	Device can draw interiors.
+    0		Device does not support lines.
+    2		Device can draw a polyline.
+    4		Device can draw a marker.
+    8		Device can draw multiple markers.
+    16		Device can draw wide lines.
+    32		Device can draw styled lines.
+    64		Device can draw lines that are wide and styled.
+    128		Device can draw interiors.
 
   POLYGONALCAPS
 
 Value that indicates the polygon capabilities of the device, as shown in the
 following table:
 
-    0	Device does not support polygons.
-    1	Device can draw alternate-fill polygons.
-    2	Device can draw rectangles.
-    4	Device can draw winding-fill polygons.
-    8	Device can draw a single scanline.
-    16	Device can draw wide borders.
-    32	Device can draw styled borders.
-    64	Device can draw borders that are wide and styled.
-    128	Device can draw interiors.
+    0		Device does not support polygons.
+    1		Device can draw alternate-fill polygons.
+    2		Device can draw rectangles.
+    4		Device can draw winding-fill polygons.
+    8		Device can draw a single scanline.
+    16		Device can draw wide borders.
+    32		Device can draw styled borders.
+    64		Device can draw borders that are wide and styled.
+    128		Device can draw interiors.
 
   TEXTCAPS
 
 Value that indicates the text capabilities of the device, as shown in the
 following table:
 
-    0x00000001	Device is capable of character output precision.
-    0x00000002	Device is capable of stroke output precision.
-    0x00000004	Device is capable of stroke clip precision.
-    0x00000008	Device is capable of 90-degree character rotation.
-    0x00000010	Device is capable of any character rotation.
-    0x00000020	Device can scale independently in the x- and y-directions.
-    0x00000040	Device is capable of doubled character for scaling.
-    0x00000080	Device uses integer multiples only for character scaling.
-    0x00000100	Device uses any multiples for exact character scaling.
-    0x00000200	Device can draw double-weight characters.
-    0x00000400	Device can italicize.
-    0x00000800	Device can underline.
-    0x00001000	Device can draw strikeouts.
-    0x00002000	Device can draw raster fonts.
-    0x00004000	Device can draw vector fonts.
-    0x00010000	Device cannot scroll using a bit-block transfer. Note that this
-		meaning may be the opposite of what you expect.
+    0x0001	Device is capable of character output precision.
+    0x0002	Device is capable of stroke output precision.
+    0x0004	Device is capable of stroke clip precision.
+    0x0008	Device is capable of 90-degree character rotation.
+    0x0010	Device is capable of any character rotation.
+    0x0020	Device can scale independently in the x- and y-directions.
+    0x0040	Device is capable of doubled character for scaling.
+    0x0080	Device uses integer multiples only for character scaling.
+    0x0100	Device uses any multiples for exact character scaling.
+    0x0200	Device can draw double-weight characters.
+    0x0400	Device can italicize.
+    0x0800	Device can underline.
+    0x1000	Device can draw strikeouts.
+    0x2000	Device can draw raster fonts.
+    0x4000	Device can draw vector fonts.
 
 See also L</new>.
 
@@ -2345,12 +2407,12 @@ See also L</Ellipse>, L</Pie>, L</Arc> and L</ArcTo>.
 
 =head2 Close
 
-  $dc->Close([$image_handle]);
+  $dc->Close([$image_handle_or_path]);
 
 The B<Close> method finishes current print job, closes all open handles and
 frees memory.
 
-If optional image handle is provided-  closes only image!
+If optional image handle or path is provided-  closes only that image!
 
 See also L</new> and L</Image>.
 
@@ -2458,7 +2520,10 @@ B<or>
 The B<Image> method loads an image file into memory and returns a handle
 to it or draws it by it's filename or handle. B<$x, $y> specifies coordinates of
 the image upper-left corner. B<$width, $height> specifies the width and height
-of image on the paper.
+of image on the paper. Once loaded by image path- image is cached in to memory
+and it may be referenced by it's path.
+
+In second case if signed integer is given- method assumes it's a handle!
 
 Natively it supports B<EMF> and B<WMF> format files.
 B<BMP, CUT, ICO, JPEG, JNG, KOALA, LBM, IFF, MNG, PBM, PBMRAW, PCD, PCX, PGM,
@@ -2924,10 +2989,17 @@ B<Edgars Binans>, I<admin@wasx.net>. I<http://www.wasx.net>
 
 =head1 COPYRIGHT AND LICENSE
 
-This library uses FreeImage 2.5.4, a free, open source image library supporting
-all common bitmap formats. Get your free copy from I<http://sourceforge.net>.
+This library may use I<FreeImage> 2.5.4, a free, open source image library
+supporting all common bitmap formats. Get your free copy from 
+L<http://sourceforge.net>. I<FreeImage> is licensed under terms of B<GNU GPL>.
 
-B<Copyright (C) 2003 Edgars Binans> I<admin@wasx.net>.
+This library may use I<Ghostscript> for PDF support. I<GNU Ghostscript> is
+licensed under terms of B<GNU GPL>. I<AFPL Ghostscript> is licensed under terms
+of B<Aladdin Free Public License>. Download I<Ghostscript> from
+L<http://sourceforge.net>.
+
+B<Win32::Printer, Copyright (C) 2003 Edgars Binans E<lt>I<admin@wasx.net>E<gt>>.
+Website: L<http://www.wasx.net>.
 
 B<THIS LIBRARY IS FREE FOR NON-COMMERCIAL USE!!!>
 
