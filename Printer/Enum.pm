@@ -1,8 +1,7 @@
 #------------------------------------------------------------------------------#
 # Win32::Printer::Enum                                                         #
-# V 0.0.5 (2005-02-07)                                                         #
-# Copyright (C) 2003-2005 Edgars Binans <admin@wasx.net>                       #
-# http://www.wasx.net                                                          #
+# V 0.0.6 (2005-02-07)                                                         #
+# Copyright (C) 2003-2005 Edgars Binans                                        #
 #------------------------------------------------------------------------------#
 
 package Win32::Printer::Enum;
@@ -17,7 +16,7 @@ require Exporter;
 
 use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD );
 
-$VERSION = '0.0.5';
+$VERSION = '0.0.6';
 
 @ISA = qw( Exporter );
 
@@ -700,7 +699,7 @@ L<Win32::Printer>, Win32 Platform SDK GDI documentation.
 
 =head1 AUTHOR
 
-B<Edgars Binans E<lt>admin@wasx.netE<gt>. http://www.wasx.net>
+B<Edgars Binans>
 
 =head1 COPYRIGHT AND LICENSE
 

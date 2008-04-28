@@ -4,8 +4,6 @@
 //  ebblapi.h 2004-11-03                                                      //
 //  Copyright (c) 2003-2004, Edgars Binans                                    //
 //                                                                            //
-//  Web: http://www.wasx.net  Mail: admin@wasx.net                            //
-//                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
 /** \file

@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------#
 # Win32::Printer (FreeImage) test script                                       #
-# Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            #
+# Copyright (C) 2003 Edgars Binans                                             #
 #------------------------------------------------------------------------------#
 
 use strict;

@@ -1,8 +1,7 @@
 #------------------------------------------------------------------------------#
 # Win32::Printer                                                               #
-# V 0.9.0 (2005-02-07)                                                         #
-# Copyright (C) 2003-2005 Edgars Binans <admin@wasx.net>                       #
-# http://www.wasx.net                                                          #
+# V 0.9.1 (2008-04-28)                                                         #
+# Copyright (C) 2003-2005 Edgars Binans                                        #
 #------------------------------------------------------------------------------#
 
 package Win32::Printer;
@@ -17,7 +16,7 @@ require Exporter;
 
 use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK $AUTOLOAD $_debuglevel $_numcroaked );
 
-$VERSION = '0.9.0';
+$VERSION = '0.9.1';
 
 @ISA = qw( Exporter );
 
@@ -2855,17 +2854,10 @@ Win32::Printer - Perl extension for Win32 printing
 
 =head1 ABSTRACT
 
-Win32 GDI graphical printing
+DISCONTINUED!!! Win32 GDI graphical printing
+If You are desperate to find me You can try to to do it through CPAN!
 
 =head1 INSTALLATION
-
-=head2 Binary instalation
-
-B<1.> Download binary PPD package of the module from I<http://www.wasx.net>.
-
-B<2.> Use PPM to install it.
-
-B<3.> Enjoy it ;)
 
 =head2 Source installation
 
@@ -2885,9 +2877,7 @@ B<4.> For PDF support, install I<Ghostscript> and set path to it's B<\bin>
 directory. You may get this PostScript interpreter form
 I<http://sourceforge.net>.
 
-B<5.> For Barcode support, install B<I<ebbl>>. For information about obtaining
-B<I<ebbl>> - visit I<http://www.wasx.net> or send me an e-mail to
-I<admin@wasx.net>.
+B<5.> For Barcode support, install B<I<ebbl>>. DISCONTINUED!!!
 
 B<6.> Enjoy it ;)
 
@@ -4794,12 +4784,9 @@ documentation.
 
 =head1 AUTHOR
 
-B<Edgars Binans E<lt>admin@wasx.netE<gt>. http://www.wasx.net>
+B<Edgars Binans>
 
 =head1 COPYRIGHT AND LICENSE
-
-This library may use B<I<ebbl>> for barcode support. Download B<I<ebbl>> from
-L<http://www.wasx.net>. See website on license details.
 
 This library may use I<FreeImage>, a free, open source image library
 supporting all common bitmap formats. Get your free copy from 

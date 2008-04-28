@@ -2,7 +2,6 @@ Non-Commercial License
 
 "ebbl 1.1" License
 Author / Licensor: Edgars Binans
-Web: www.wasx.net
 Copyright (C) 2003-2004 Edgars Binans.
 All Rights Reserved.
 

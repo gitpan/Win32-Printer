@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------#
 #  Win32::Printer Maker                                                        #
-#  Edgars Binans <admin@wasx.net>                                              #
+#  Edgars Binans                                                               #
 #------------------------------------------------------------------------------#
 
 use strict;
@@ -54,7 +54,7 @@ WriteMakefile(
   'NAME'		=> 'Win32::Printer',
   'VERSION_FROM'	=> 'Printer.pm',
   'ABSTRACT_FROM'	=> 'Printer.pm',
-  'AUTHOR'		=> 'Edgars Binans <admin@wasx.net>',
+  'AUTHOR'		=> 'Edgars Binans',
   'INC'			=>  $inc,
   'LIBS'		=>  "Delayimp.lib $lib",
   'LDDLFLAGS'		=>  "$Config{lddlflags} $lin",

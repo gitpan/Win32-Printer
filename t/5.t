@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------#
 # Win32::Printer & Win32::Printer (NATIVE emf) test script                     #
-# Copyright (C) 2003 Edgars Binans <admin@wasx.net>                            #
+# Copyright (C) 2003 Edgars Binans                                             #
 #------------------------------------------------------------------------------#
 
 use Test::Simple tests => 39;
